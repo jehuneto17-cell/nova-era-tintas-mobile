@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock } from "lucide-react";
-import { PhoneStatusBarStatic } from "@/components/PhoneStatusBarStatic";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { SuccessConfetti } from "@/components/SuccessConfetti";
 
@@ -72,11 +71,10 @@ export default function LoginPage() {
 
   return (
     <div className="absolute inset-0 bg-white">
-      <PhoneStatusBarStatic />
       <button
         type="button"
         onClick={() => router.push("/entrada")}
-        className="absolute top-14 left-4 z-33 w-9 h-9 rounded-full bg-[#F5F5F5] cursor-pointer flex items-center justify-center hover:bg-[#EDEFED] transition-colors"
+        className="absolute top-4 left-4 z-33 w-9 h-9 rounded-full bg-[#F5F5F5] cursor-pointer flex items-center justify-center hover:bg-[#EDEFED] transition-colors"
       >
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#012418" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <path d="m15 18-6-6 6-6" />
@@ -84,10 +82,10 @@ export default function LoginPage() {
       </button>
 
       <div
-        className="ne-scroll absolute inset-x-0 top-[46px] bottom-0 transition-all duration-300"
+        className="ne-scroll absolute inset-x-0 top-0 bottom-0 transition-all duration-300"
         style={{ opacity: success ? 0.35 : 1, filter: success ? "blur(2px)" : "blur(0px)" }}
       >
-        <div className="min-h-[calc(844px-46px)] box-border px-6 pt-8 pb-10 flex flex-col justify-center">
+        <div className="min-h-[844px] box-border px-6 pt-8 pb-10 flex flex-col justify-center">
           <div className="flex flex-col items-center mb-6">
             {logoLoading ? (
               <div className="w-[100px] h-[100px] rounded-[20px] bg-[#012418] mb-6" style={{ animation: "ne-pulse 1.1s ease-in-out infinite" }} />

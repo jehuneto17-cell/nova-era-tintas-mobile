@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PhoneStatusBarStatic } from "@/components/PhoneStatusBarStatic";
 import { useApp } from "@/lib/store";
 import { Toast } from "@/components/Toast";
 
@@ -15,10 +14,6 @@ export default function EntradaPage() {
         className="absolute inset-0 bg-center bg-cover"
         style={{ backgroundImage: "url(/entrada-bg.png)", opacity: 0.97 }}
       />
-
-      <div className="relative z-10">
-        <PhoneStatusBarStatic />
-      </div>
 
       <div className="relative z-10 flex-1" />
 
