@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { PhoneStatusBarStatic } from "@/components/PhoneStatusBarStatic";
-import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { useApp } from "@/lib/store";
 import { Toast } from "@/components/Toast";
 
@@ -11,39 +10,19 @@ export default function EntradaPage() {
   const { flash } = useApp();
 
   return (
-    <div className="absolute inset-0 bg-gradient-to-b from-white to-[#F8F8F8] flex flex-col">
-      <PhoneStatusBarStatic />
+    <div className="absolute inset-0 bg-gradient-to-b from-white to-[#F8F8F8] flex flex-col overflow-hidden">
+      <div
+        className="absolute inset-0 bg-center bg-cover"
+        style={{ backgroundImage: "url(/entrada-bg.png)", opacity: 0.97 }}
+      />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-8 pt-20 text-center">
-        <div
-          className="w-24 h-24 rounded-[22px] overflow-hidden bg-[#F1F3F1] shadow-[0_12px_30px_rgba(0,0,0,.12)] mb-7"
-          style={{ animation: "ne-fadedown .4s ease-out" }}
-        >
-          <ImagePlaceholder label="Logo da Loja" />
-        </div>
-
-        <div
-          style={{
-            fontFamily: "var(--font-archivo)",
-            fontWeight: 800,
-            fontSize: 28,
-            letterSpacing: "-0.02em",
-            color: "#012418",
-            marginBottom: 12,
-            animation: "ne-fadeup .35s ease-out .1s both",
-          }}
-        >
-          Nova Era Tintas
-        </div>
-        <div style={{ fontSize: 16, color: "#999999", lineHeight: 1.5, marginBottom: 20, animation: "ne-fadeup .35s ease-out .18s both" }}>
-          Tudo para pintar, do seu jeito!
-        </div>
-        <div style={{ fontSize: 14, color: "#999999", lineHeight: 1.6, maxWidth: 280, animation: "ne-fadeup .35s ease-out .24s both" }}>
-          Tintas de qualidade, pincéis premium, rolos, primers e muito mais. Tudo que você precisa para seus projetos de pintura.
-        </div>
+      <div className="relative z-10">
+        <PhoneStatusBarStatic />
       </div>
 
-      <div className="box-border px-4 pt-4 pb-2 flex flex-col gap-3" style={{ animation: "ne-fadeup .35s ease-out .3s both" }}>
+      <div className="relative z-10 flex-1" />
+
+      <div className="relative z-10 box-border px-4 pt-4 pb-2 flex flex-col gap-3" style={{ animation: "ne-fadeup .35s ease-out .3s both" }}>
         <div className="flex gap-3">
           <button
             type="button"
@@ -86,7 +65,9 @@ export default function EntradaPage() {
         </div>
       </div>
 
-      <Toast bottom={96} />
+      <div className="relative z-10">
+        <Toast bottom={96} />
+      </div>
     </div>
   );
 }

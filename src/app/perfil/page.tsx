@@ -51,6 +51,7 @@ export default function PerfilPage() {
       setLoggingOut(false);
       setShowLogout(false);
       flash("Você saiu da sua conta");
+      router.push("/entrada");
     }, 1000);
   };
 

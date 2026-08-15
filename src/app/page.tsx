@@ -8,6 +8,7 @@ import { useApp } from "@/lib/store";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { SplashGate } from "@/components/SplashGate";
 
 const RECENTS_SEED = ["Tinta vermelha", "Pincel 2 polegadas", "Rolo de lã", "Primer branco"];
 const POPULARES = ["Tintas Premium", "Rolos profissionais", "Pincéis sintéticos"];
@@ -65,7 +66,7 @@ export default function HomePage() {
   };
 
   return (
-    <>
+    <SplashGate>
       {/* sticky search + cart */}
       <div
         className="absolute top-0 left-0 right-0 z-28 flex items-center justify-end gap-2.5 px-4 pb-2.5 pt-[50px] transition-all duration-300"
@@ -405,7 +406,7 @@ export default function HomePage() {
 
       <Toast bottom={160} />
       <TabBar />
-    </>
+    </SplashGate>
   );
 }
 
