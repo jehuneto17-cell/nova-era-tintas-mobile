@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Grid2x2, ShoppingBag, Heart, User } from "lucide-react";
-import { useApp } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -16,7 +16,7 @@ const tabs = [
 
 export function TabBar() {
   const pathname = usePathname();
-  const { cartCount } = useApp();
+  const { cartCount } = useStore();
 
   return (
     <nav

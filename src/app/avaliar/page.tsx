@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Star, ImagePlus, X } from "lucide-react";
-import { PRODUCTS } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { useToast } from "@/lib/toast";
+import { subscribePedido } from "@/lib/pedidos";
+import type { Pedido, PedidoItem } from "@/lib/types";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 
@@ -16,12 +17,26 @@ const RATING_COPY: Record<number, { text: string; color: string }> = {
   5: { text: "Excelente! Obrigado por comprar com a gente.", color: "#00B20B" },
 };
 
-export default function AvaliarPage() {
+function AvaliarContent() {
   const router = useRouter();
-  const { flash } = useApp();
+  const params = useSearchParams();
+  const { flash } = useToast();
 
-  const product = PRODUCTS[0];
-  const qty = 2;
+  const pedidoId = params.get("pedido");
+  const itemIndex = params.get("item");
+
+  const [pedido, setPedido] = useState<Pedido | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!pedidoId) return;
+    return subscribePedido(pedidoId, setPedido);
+  }, [pedidoId]);
+
+  const item: PedidoItem | null = useMemo(() => {
+    if (!pedido) return null;
+    const idx = itemIndex ? parseInt(itemIndex, 10) : 0;
+    return pedido.itens[idx] ?? pedido.itens[0] ?? null;
+  }, [pedido, itemIndex]);
 
   const [rating, setRating] = useState(0);
   const [bounceStar, setBounceStar] = useState<number | null>(null);
@@ -29,7 +44,8 @@ export default function AvaliarPage() {
   const [photos, setPhotos] = useState<number[]>([]);
   const [recommend, setRecommend] = useState<"sim" | "nao" | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const photoSeq = useMemo(() => ({ current: 0 }), []);
+  const [submitted, setSubmitted] = useState(false);
+  const photoSeq = useRef(0);
 
   const commentLen = comment.trim().length;
   const commentTooShort = comment.length > 0 && commentLen < 10;
@@ -56,6 +72,7 @@ export default function AvaliarPage() {
     setSubmitting(true);
     setTimeout(() => {
       setSubmitting(false);
+      setSubmitted(true);
       flash("Avaliação enviada — obrigado!");
     }, 900);
   };
@@ -87,12 +104,14 @@ export default function AvaliarPage() {
         <div className="px-4 pt-4">
           <div className="p-3 rounded-2xl bg-white shadow-[0_2px_10px_rgba(1,36,24,.06)] flex gap-3">
             <div className="w-16 h-16 flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
-              <ImagePlaceholder label={product.ph} />
+              <ImagePlaceholder label={item?.nome ?? "Produto"} />
             </div>
             <div className="flex-1 min-w-0 flex flex-col justify-center">
-              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, lineHeight: 1.25, color: "#000" }}>{product.name}</div>
-              <div className="mt-1 text-[11.5px] font-medium text-[#999999]">{product.unit}</div>
-              <div className="mt-1 text-[11.5px] font-semibold text-[#999999]">Quantidade: {qty}</div>
+              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, lineHeight: 1.25, color: "#000" }}>
+                {item?.nome ?? "Produto"}
+              </div>
+              {item && <div className="mt-1 text-[11.5px] font-medium text-[#999999]">{item.variacao}</div>}
+              {item && <div className="mt-1 text-[11.5px] font-semibold text-[#999999]">Quantidade: {item.qtd}</div>}
             </div>
           </div>
         </div>
@@ -230,25 +249,33 @@ export default function AvaliarPage() {
       <div className="absolute left-0 right-0 bottom-0 z-31 box-border px-4 py-3 bg-white border-t border-[#EDEFED] flex items-center gap-3">
         <button
           type="button"
-          onClick={() => flash("Itens adicionados ao carrinho novamente")}
+          onClick={() => router.push("/pedidos")}
           className="flex-1 h-[50px] rounded-2xl border border-[#E5E5E5] bg-white cursor-pointer flex items-center justify-center hover:bg-[#F5F5F5] transition-colors"
           style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#012418" }}
         >
-          Pedir Novamente
+          Meus Pedidos
         </button>
         <button
           type="button"
           onClick={submit}
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitted}
           className="flex-1 h-[50px] rounded-2xl border-0 bg-ne-green text-white cursor-pointer flex items-center justify-center gap-2 hover:bg-[#00c40d] active:scale-[.98] transition-transform disabled:opacity-45 disabled:cursor-not-allowed"
           style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5 }}
         >
           {submitting && <span className="w-4 h-4 rounded-full border-[2.5px] border-white/35 border-t-white" style={{ animation: "ne-spin .7s linear infinite" }} />}
-          {submitting ? "Enviando..." : "Enviar Avaliação"}
+          {submitted ? "Avaliação Enviada" : submitting ? "Enviando..." : "Enviar Avaliação"}
         </button>
       </div>
 
       <Toast bottom={120} />
     </>
+  );
+}
+
+export default function AvaliarPage() {
+  return (
+    <Suspense fallback={null}>
+      <AvaliarContent />
+    </Suspense>
   );
 }

@@ -1,142 +1,125 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { PRODUCTS } from "./data";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-type CartItem = { id: string; qty: number };
-
-type ToastState = { id: number; message: string } | null;
-
-type AppState = {
-  cart: CartItem[];
-  favorites: Record<string, boolean>;
-  toast: ToastState;
-  addToCart: (id: string, qty?: number) => void;
-  removeFromCart: (id: string) => void;
-  setQty: (id: string, qty: number) => void;
-  clearCart: () => void;
-  toggleFavorite: (id: string) => void;
-  isFavorite: (id: string) => boolean;
-  flash: (message: string) => void;
-  cartCount: number;
-  cartTotal: number;
+export type CartLine = {
+  produtoId: string;
+  variacao: string; // chave "Cor|Volume", igual à chave em produtos/{id}.variacoes
+  title: string;
+  specs: string;
+  price: number;
+  oldPrice: number | null;
+  qty: number;
+  shot: string;
+  shotUrl?: string;
 };
 
-const AppContext = createContext<AppState | null>(null);
+type StoreValue = {
+  items: CartLine[];
+  cartCount: number;
+  subtotal: number;
+  favorites: string[];
+  addItem: (line: Omit<CartLine, "qty">, qty?: number) => void;
+  setQty: (produtoId: string, variacao: string, next: number) => void;
+  removeItem: (produtoId: string, variacao: string) => void;
+  resetCart: () => void;
+  toggleFavorite: (produtoId: string) => void;
+};
 
-export function AppProviders({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([
-    { id: "p1", qty: 2 },
-    { id: "p4", qty: 1 },
-    { id: "p3", qty: 1 },
-  ]);
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({ p5: true });
-  const [toast, setToast] = useState<ToastState>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const toastId = useRef(0);
+const StoreContext = createContext<StoreValue | null>(null);
+const CART_KEY = "net_cart";
+const FAVORITES_KEY = "net_favorites";
 
-  const flash = useCallback((message: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastId.current += 1;
-    setToast({ id: toastId.current, message });
-    toastTimer.current = setTimeout(() => setToast(null), 2100);
-  }, []);
-
-  const addToCart = useCallback(
-    (id: string, qty = 1) => {
-      setCart((prev) => {
-        const existing = prev.find((i) => i.id === id);
-        if (existing) {
-          return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + qty } : i));
-        }
-        return [...prev, { id, qty }];
-      });
-      const p = PRODUCTS.find((x) => x.id === id);
-      if (p) flash(p.name.split(" ").slice(0, 3).join(" ") + " no carrinho");
-    },
-    [flash]
-  );
-
-  const removeFromCart = useCallback((id: string) => {
-    setCart((prev) => prev.filter((i) => i.id !== id));
-  }, []);
-
-  const setQty = useCallback((id: string, qty: number) => {
-    setCart((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, qty: Math.max(1, Math.min(99, qty)) } : i))
-        .filter((i) => i.qty > 0)
-    );
-  }, []);
-
-  const clearCart = useCallback(() => setCart([]), []);
-
-  const toggleFavorite = useCallback(
-    (id: string) => {
-      setFavorites((prev) => {
-        const on = !prev[id];
-        const p = PRODUCTS.find((x) => x.id === id);
-        if (p) flash(on ? "Salvo nos favoritos" : "Removido dos favoritos");
-        return { ...prev, [id]: on };
-      });
-    },
-    [flash]
-  );
-
-  const isFavorite = useCallback((id: string) => !!favorites[id], [favorites]);
-
-  const cartCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
-  const cartTotal = useMemo(
-    () =>
-      cart.reduce((s, i) => {
-        const p = PRODUCTS.find((x) => x.id === i.id);
-        return s + (p ? p.price * i.qty : 0);
-      }, 0),
-    [cart]
-  );
-
-  const value: AppState = {
-    cart,
-    favorites,
-    toast,
-    addToCart,
-    removeFromCart,
-    setQty,
-    clearCart,
-    toggleFavorite,
-    isFavorite,
-    flash,
-    cartCount,
-    cartTotal,
-  };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+function lineKey(produtoId: string, variacao: string) {
+  return `${produtoId}::${variacao}`;
 }
 
-export function useApp() {
-  const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useApp must be used within AppProviders");
+export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const [items, setItems] = useState<CartLine[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    function readLocalStorage() {
+      try {
+        const cart = localStorage.getItem(CART_KEY);
+        const favs = localStorage.getItem(FAVORITES_KEY);
+        return {
+          items: cart ? (JSON.parse(cart) as CartLine[]) : null,
+          favorites: favs ? (JSON.parse(favs) as string[]) : null,
+        };
+      } catch {
+        // localStorage indisponível (SSR/privado) — segue com carrinho vazio
+        return { items: null, favorites: null };
+      }
+    }
+    // Lido via microtask (callback), não sincronamente no corpo do efeito,
+    // seguindo o padrão "subscribe/callback" recomendado pela regra
+    // react-hooks/set-state-in-effect para sincronizar com localStorage.
+    Promise.resolve(readLocalStorage()).then(({ items: storedItems, favorites: storedFavorites }) => {
+      if (storedItems) setItems(storedItems);
+      if (storedFavorites) setFavorites(storedFavorites);
+      setHydrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) localStorage.setItem(CART_KEY, JSON.stringify(items));
+  }, [items, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+  }, [favorites, hydrated]);
+
+  const value = useMemo<StoreValue>(() => {
+    const cartCount = items.reduce((a, i) => a + i.qty, 0);
+    const subtotal = items.reduce((a, i) => a + i.price * i.qty, 0);
+
+    return {
+      items,
+      cartCount,
+      subtotal,
+      favorites,
+      addItem: (line, qty = 1) =>
+        setItems((prev) => {
+          const key = lineKey(line.produtoId, line.variacao);
+          const found = prev.find((p) => lineKey(p.produtoId, p.variacao) === key);
+          if (found) {
+            return prev.map((p) =>
+              lineKey(p.produtoId, p.variacao) === key
+                ? { ...p, qty: Math.min(99, p.qty + qty) }
+                : p,
+            );
+          }
+          return [...prev, { ...line, qty }];
+        }),
+      setQty: (produtoId, variacao, next) =>
+        setItems((prev) =>
+          prev.map((p) =>
+            lineKey(p.produtoId, p.variacao) === lineKey(produtoId, variacao)
+              ? { ...p, qty: Math.min(99, Math.max(1, next)) }
+              : p,
+          ),
+        ),
+      removeItem: (produtoId, variacao) =>
+        setItems((prev) =>
+          prev.filter((p) => lineKey(p.produtoId, p.variacao) !== lineKey(produtoId, variacao)),
+        ),
+      resetCart: () => setItems([]),
+      toggleFavorite: (produtoId) =>
+        setFavorites((prev) =>
+          prev.includes(produtoId) ? prev.filter((id) => id !== produtoId) : [...prev, produtoId],
+        ),
+    };
+  }, [items, favorites]);
+
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+}
+
+export function useStore() {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error("useStore must be used inside StoreProvider");
   return ctx;
 }
 
-export function useCartItems() {
-  const { cart } = useApp();
-  return useMemo(
-    () =>
-      cart
-        .map((i) => {
-          const product = PRODUCTS.find((p) => p.id === i.id);
-          return product ? { ...i, product } : null;
-        })
-        .filter((x): x is { id: string; qty: number; product: (typeof PRODUCTS)[number] } => !!x),
-    [cart]
-  );
-}
+export const brl = (n: number) => "R$ " + n.toFixed(2).replace(".", ",");

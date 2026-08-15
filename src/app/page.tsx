@@ -2,20 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingBag, Star, LayoutGrid, PaintBucket, Paintbrush, PaintRoller, Droplet, SprayCan, Wrench, Heart } from "lucide-react";
-import { PRODUCTS, CATEGORIES, brl } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { Search, ShoppingBag, Star, LayoutGrid, Heart } from "lucide-react";
+import { useProdutos, useCategoriasAtivas, useBranding, useLoja, useWhatsapp, useBuscas } from "@/lib/hooks";
+import { precoMinimo, estoqueTotal, capaUrl } from "@/lib/produtos";
+import { toCartLine } from "@/lib/mappers";
+import { brl, useStore } from "@/lib/store";
+import { useToast } from "@/lib/toast";
+import { categoryIcon } from "@/lib/icons";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { SplashGate } from "@/components/SplashGate";
 
-const RECENTS_SEED = ["Tinta vermelha", "Pincel 2 polegadas", "Rolo de lã", "Primer branco"];
-const POPULARES = ["Tintas Premium", "Rolos profissionais", "Pincéis sintéticos"];
+const RECENTS_SEED: string[] = [];
 
 export default function HomePage() {
   const router = useRouter();
-  const { cart, cartCount, cartTotal, addToCart, toggleFavorite, isFavorite, flash } = useApp();
+  const { items, cartCount, subtotal, addItem, favorites, toggleFavorite } = useStore();
+  const { flash } = useToast();
+  const { produtos } = useProdutos();
+  const { categorias } = useCategoriasAtivas();
+  const branding = useBranding();
+  const loja = useLoja();
+  const whatsapp = useWhatsapp();
+  const buscas = useBuscas();
 
   const [cat, setCat] = useState("todos");
   const [query, setQuery] = useState("");
@@ -48,11 +58,11 @@ export default function HomePage() {
   }, []);
 
   const q = query.trim().toLowerCase();
-  const list = PRODUCTS.filter(
-    (p) => (cat === "todos" || p.cat === cat) && (!q || (p.name + " " + p.desc).toLowerCase().includes(q))
+  const list = produtos.filter(
+    (p) => (cat === "todos" || p.categoriaId === cat) && (!q || (p.nome + " " + p.descricao).toLowerCase().includes(q))
   );
 
-  const cartById = Object.fromEntries(cart.map((i) => [i.id, i.qty]));
+  const cartByProduto = new Set(items.map((i) => i.produtoId));
 
   const focusSearch = () => {
     const el = scrollRef.current;
@@ -64,6 +74,26 @@ export default function HomePage() {
     setSearchOpen(true);
     setTimeout(() => inputRef.current?.focus(), 320);
   };
+
+  const handleAdd = (produtoId: string) => {
+    const produto = produtos.find((p) => p.id === produtoId);
+    if (!produto) return;
+    const line = toCartLine(produto);
+    if (!line) {
+      flash("Produto sem estoque");
+      return;
+    }
+    addItem(line);
+    flash(produto.nome.split(" ").slice(0, 3).join(" ") + " no carrinho");
+  };
+
+  const handleFavorite = (produtoId: string) => {
+    const on = !favorites.includes(produtoId);
+    toggleFavorite(produtoId);
+    flash(on ? "Salvo nos favoritos" : "Removido dos favoritos");
+  };
+
+  const popularTerms = buscas?.mostrar ? buscas.termos : [];
 
   return (
     <SplashGate>
@@ -148,58 +178,66 @@ export default function HomePage() {
             className="absolute left-4 right-4 z-29 rounded-xl bg-white/95 backdrop-blur-2xl pt-3.5 px-1.5 pb-2 shadow-[0_12px_34px_rgba(1,36,24,.14)]"
             style={{ top: 106, animation: "ne-fade .2s ease-out" }}
           >
-            <div className="px-2.5 pb-2 uppercase text-[#999999]" style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 11.5, letterSpacing: "0.08em" }}>
-              Recentes
-            </div>
-            <div className="flex flex-col">
-              {recents.map((r) => (
-                <div key={r} className="flex items-center gap-3 py-3 px-4 rounded-[10px] cursor-pointer hover:bg-[#F5F5F5] transition-colors">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuery(r);
-                      setSearchOpen(false);
-                      setCat("todos");
-                    }}
-                    className="flex-1 min-w-0 flex items-center gap-3 text-left"
-                  >
-                    <Search size={17} color="#999999" strokeWidth={1.8} />
-                    <span className="text-[14.5px] font-medium text-black truncate">{r}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRecents((prev) => prev.filter((x) => x !== r));
-                    }}
-                    className="flex-none w-[22px] h-[22px] rounded-full bg-[#F1F3F1] text-[#999999] text-[13px] leading-none cursor-pointer hover:bg-[#E4E7E4] hover:text-black flex items-center justify-center"
-                  >
-                    ×
-                  </button>
+            {recents.length > 0 && (
+              <>
+                <div className="px-2.5 pb-2 uppercase text-[#999999]" style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 11.5, letterSpacing: "0.08em" }}>
+                  Recentes
                 </div>
-              ))}
-            </div>
-            <div className="h-px my-2 mx-2.5 bg-[#EDEFED]" />
-            <div className="px-2.5 pb-2.5 uppercase text-[#999999]" style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 11.5, letterSpacing: "0.08em" }}>
-              Populares
-            </div>
-            <div className="flex flex-wrap gap-2 px-2.5 pb-2.5">
-              {POPULARES.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => {
-                    setQuery(t.split(" ")[0].replace(/s$/, ""));
-                    setSearchOpen(false);
-                    setCat("todos");
-                  }}
-                  className="border border-[#E6E9E6] bg-white text-black px-[13px] py-2 rounded-full cursor-pointer hover:bg-[#F5F5F5] hover:border-ne-green transition-colors"
-                  style={{ fontFamily: "var(--font-manrope)", fontSize: 13, fontWeight: 600 }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+                <div className="flex flex-col">
+                  {recents.map((r) => (
+                    <div key={r} className="flex items-center gap-3 py-3 px-4 rounded-[10px] cursor-pointer hover:bg-[#F5F5F5] transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuery(r);
+                          setSearchOpen(false);
+                          setCat("todos");
+                        }}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                      >
+                        <Search size={17} color="#999999" strokeWidth={1.8} />
+                        <span className="text-[14.5px] font-medium text-black truncate">{r}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRecents((prev) => prev.filter((x) => x !== r));
+                        }}
+                        className="flex-none w-[22px] h-[22px] rounded-full bg-[#F1F3F1] text-[#999999] text-[13px] leading-none cursor-pointer hover:bg-[#E4E7E4] hover:text-black flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="h-px my-2 mx-2.5 bg-[#EDEFED]" />
+              </>
+            )}
+            {popularTerms.length > 0 && (
+              <>
+                <div className="px-2.5 pb-2.5 uppercase text-[#999999]" style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 11.5, letterSpacing: "0.08em" }}>
+                  Populares
+                </div>
+                <div className="flex flex-wrap gap-2 px-2.5 pb-2.5">
+                  {popularTerms.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setQuery(t);
+                        setSearchOpen(false);
+                        setCat("todos");
+                      }}
+                      className="border border-[#E6E9E6] bg-white text-black px-[13px] py-2 rounded-full cursor-pointer hover:bg-[#F5F5F5] hover:border-ne-green transition-colors"
+                      style={{ fontFamily: "var(--font-manrope)", fontSize: 13, fontWeight: 600 }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
@@ -209,7 +247,12 @@ export default function HomePage() {
         {/* hero */}
         <div className="relative h-[290px] bg-[#012418]">
           <div className="absolute inset-0">
-            <ImagePlaceholder label="foto de banner — tintas, rolos e pincéis" />
+            {branding?.banner_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={branding.banner_url} alt="Banner" className="w-full h-full object-cover" />
+            ) : (
+              <ImagePlaceholder label="foto de banner — tintas, rolos e pincéis" />
+            )}
           </div>
           <div
             className="absolute inset-0 pointer-events-none"
@@ -225,7 +268,12 @@ export default function HomePage() {
               className="absolute left-5 top-[215px] w-[94px] h-[94px] rounded-xl overflow-hidden bg-[#F8F8F8] border-[3px] border-white shadow-[0_6px_18px_rgba(0,0,0,.3)] box-content"
               style={{ animation: "ne-rise .3s ease-out both" }}
             >
-              <ImagePlaceholder label="Logo da Loja" />
+              {branding?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={branding.logo_url} alt="Logo da Loja" className="w-full h-full object-cover" />
+              ) : (
+                <ImagePlaceholder label="Logo da Loja" />
+              )}
             </div>
           )}
         </div>
@@ -235,7 +283,7 @@ export default function HomePage() {
           <div className="flex items-start gap-3.5">
             <div className="flex-1 min-w-0">
               <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 24, lineHeight: 1.1, letterSpacing: "-0.03em", color: "#000" }}>
-                Nova Era Tintas
+                {loja?.nome || "Nova Era Tintas"}
               </div>
               <div className="flex items-center gap-2 mt-2.5">
                 <div className="w-[22px] h-[22px] rounded-[7px] bg-ne-green flex items-center justify-center flex-none">
@@ -245,7 +293,7 @@ export default function HomePage() {
                   Tintas, Pincéis, Rolos e Acabamentos
                 </div>
               </div>
-              <div className="mt-2 text-[13px] font-medium text-[#999999]">Itaú de Minas, MG</div>
+              <div className="mt-2 text-[13px] font-medium text-[#999999]">{loja?.cidade ? `${loja.cidade}, ${loja.estado}` : "—"}</div>
             </div>
             <div className="flex-none w-[91px] px-1.5 py-2.5 rounded-xl bg-[#F4F6F4] text-center">
               <div className="flex items-center justify-center gap-1.5" style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, color: "#012418" }}>
@@ -266,7 +314,7 @@ export default function HomePage() {
             <div className="flex-1 py-2.5 px-2 text-center">
               <div className="text-[11px] font-medium text-[#999999]">WhatsApp</div>
               <div className="mt-1 whitespace-nowrap" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, letterSpacing: "-0.02em", color: "#000" }}>
-                98414-1300
+                {whatsapp?.numero || "—"}
               </div>
             </div>
             <div className="w-px bg-[#EDEFED]" />
@@ -282,13 +330,32 @@ export default function HomePage() {
         {/* categories */}
         <div className="ne-hs mt-3 px-5 pt-0.5 pb-1">
           <div className="flex gap-2.5 w-max">
-            {CATEGORIES.map((c) => {
+            <button
+              type="button"
+              onClick={() => router.push("/categorias")}
+              className="min-w-[78px] px-3 pt-[11px] pb-2.5 rounded-2xl cursor-pointer flex flex-col items-center gap-2 transition-colors"
+              style={{
+                border: `1px solid ${cat === "todos" ? "#00B20B" : "#E6E9E6"}`,
+                background: cat === "todos" ? "#00B20B" : "#FFFFFF",
+                color: cat === "todos" ? "#FFFFFF" : "#999999",
+                fontFamily: "var(--font-archivo)",
+                fontWeight: 600,
+                fontSize: 12,
+              }}
+            >
+              <div className="h-[22px] flex items-center justify-center">
+                <LayoutGrid size={19} strokeWidth={2.2} />
+              </div>
+              <span>Todos</span>
+            </button>
+            {categorias.map((c) => {
               const active = c.id === cat;
+              const Icon = categoryIcon(c.icone);
               return (
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => (c.id === "todos" ? router.push("/categorias") : setCat(c.id))}
+                  onClick={() => setCat(c.id)}
                   className="min-w-[78px] px-3 pt-[11px] pb-2.5 rounded-2xl cursor-pointer flex flex-col items-center gap-2 transition-colors"
                   style={{
                     border: `1px solid ${active ? "#00B20B" : "#E6E9E6"}`,
@@ -300,9 +367,9 @@ export default function HomePage() {
                   }}
                 >
                   <div className="h-[22px] flex items-center justify-center">
-                    <CategoryGlyph id={c.id} />
+                    <Icon size={19} strokeWidth={2.2} />
                   </div>
-                  <span>{c.label}</span>
+                  <span>{c.nome}</span>
                 </button>
               );
             })}
@@ -312,7 +379,7 @@ export default function HomePage() {
         {/* section head */}
         <div className="flex items-baseline justify-between px-5 pt-5 pb-3">
           <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 19, letterSpacing: "-0.02em", color: "#012418" }}>
-            {q ? "Resultados" : cat === "todos" ? "Todos os produtos" : CATEGORIES.find((c) => c.id === cat)?.label}
+            {q ? "Resultados" : cat === "todos" ? "Todos os produtos" : categorias.find((c) => c.id === cat)?.nome}
           </div>
           <div className="text-xs font-semibold text-[#999999]">
             {list.length} {list.length === 1 ? "item" : "itens"}
@@ -323,19 +390,27 @@ export default function HomePage() {
         {list.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 px-5 pb-6">
             {list.map((p) => {
-              const inCart = !!cartById[p.id];
-              const fav = isFavorite(p.id);
+              const inCart = cartByProduto.has(p.id);
+              const fav = favorites.includes(p.id);
+              const preco = precoMinimo(p);
+              const emEstoque = estoqueTotal(p) > 0;
+              const foto = capaUrl(p);
               return (
                 <div key={p.id} className="relative flex flex-col gap-2 p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
                   <button
                     onClick={() => router.push(`/produto/${p.id}`)}
                     className="relative w-full aspect-square rounded-[10px] overflow-hidden bg-[#F1F3F1] text-left"
                   >
-                    <ImagePlaceholder label={p.ph} />
+                    {foto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImagePlaceholder label={p.nome} />
+                    )}
                     <span
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleFavorite(p.id);
+                        handleFavorite(p.id);
                       }}
                       className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center cursor-pointer"
                       style={{ color: fav ? "#00B20B" : "#D7DBD7" }}
@@ -345,18 +420,19 @@ export default function HomePage() {
                   </button>
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     <button onClick={() => router.push(`/produto/${p.id}`)} className="text-left">
-                      <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.name}</div>
+                      <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.nome}</div>
                     </button>
-                    <div className="text-[11px] font-medium leading-snug text-[#999999] line-clamp-2">{p.desc}</div>
+                    <div className="text-[11px] font-medium leading-snug text-[#999999] line-clamp-2">{p.descricao}</div>
                     <div className="mt-auto flex items-end justify-between gap-2 pt-1">
                       <div>
-                        <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em", color: "#00B20B" }}>{brl(p.price)}</div>
-                        <div className="text-[10px] font-semibold text-[#999999] mt-0.5">{p.unit}</div>
+                        <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em", color: "#00B20B" }}>{brl(preco)}</div>
+                        {!emEstoque && <div className="text-[10px] font-semibold text-[#E63946] mt-0.5">Sem estoque</div>}
                       </div>
                       <button
                         type="button"
-                        onClick={() => addToCart(p.id)}
-                        className="relative w-[34px] h-[34px] flex-none rounded-[11px] bg-ne-green text-white cursor-pointer text-xl font-medium flex items-center justify-center shadow-[0_4px_12px_rgba(0,178,11,.3)] hover:bg-[#00c40d] active:scale-95 transition-transform"
+                        onClick={() => handleAdd(p.id)}
+                        disabled={!emEstoque}
+                        className="relative w-[34px] h-[34px] flex-none rounded-[11px] bg-ne-green text-white cursor-pointer text-xl font-medium flex items-center justify-center shadow-[0_4px_12px_rgba(0,178,11,.3)] hover:bg-[#00c40d] active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         +
                         {inCart && (
@@ -364,7 +440,7 @@ export default function HomePage() {
                             className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 box-border rounded-full bg-[#012418] border-2 border-white flex items-center justify-center"
                             style={{ fontFamily: "var(--font-archivo)", fontSize: 10, fontWeight: 700 }}
                           >
-                            {cartById[p.id]}
+                            ✓
                           </span>
                         )}
                       </button>
@@ -379,7 +455,7 @@ export default function HomePage() {
             <div className="w-[54px] h-[54px] mx-auto mb-3.5 rounded-full border-2 border-dashed border-[#CFD4CF]" />
             <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 15, color: "#012418" }}>Nada encontrado</div>
             <div className="mt-1.5 text-[12.5px] font-medium leading-relaxed text-[#999999]">
-              Tente outro termo ou fale com a loja no WhatsApp (35) 98414-1300.
+              Tente outro termo ou fale com a loja no WhatsApp {whatsapp?.numero || ""}.
             </div>
           </div>
         )}
@@ -394,7 +470,7 @@ export default function HomePage() {
             <div className="uppercase text-[10.5px] font-semibold text-white/50" style={{ letterSpacing: "0.08em" }}>
               {cartCount} {cartCount === 1 ? "item no carrinho" : "itens no carrinho"}
             </div>
-            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 17, color: "#FFFFFF", letterSpacing: "-0.02em" }}>{brl(cartTotal)}</div>
+            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 17, color: "#FFFFFF", letterSpacing: "-0.02em" }}>{brl(subtotal)}</div>
           </div>
           <button
             type="button"
@@ -411,26 +487,4 @@ export default function HomePage() {
       <TabBar />
     </SplashGate>
   );
-}
-
-function CategoryGlyph({ id }: { id: string }) {
-  switch (id) {
-    case "todos":
-      return <LayoutGrid size={19} strokeWidth={2.2} />;
-    case "tintas":
-      return <PaintBucket size={19} strokeWidth={2.2} />;
-    case "pinceis":
-      return <Paintbrush size={19} strokeWidth={2.2} />;
-    case "rolos":
-      return <PaintRoller size={19} strokeWidth={2.2} />;
-    case "primers":
-      return <Droplet size={19} strokeWidth={2.2} />;
-    case "seladores":
-      return <SprayCan size={19} strokeWidth={2.2} />;
-    case "acabamentos":
-    case "acessorios":
-      return <Wrench size={19} strokeWidth={2.2} />;
-    default:
-      return null;
-  }
 }

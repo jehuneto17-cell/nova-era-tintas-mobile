@@ -5,15 +5,27 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { SuccessConfetti } from "@/components/SuccessConfetti";
+import { useAuth } from "@/lib/auth";
+import { maskPhone } from "@/lib/utils";
 
 const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-type FieldKey = "name" | "email" | "password" | "confirm";
+function mapFirebaseAuthError(err: unknown): string {
+  const code = (err as { code?: string })?.code ?? "";
+  if (code === "auth/email-already-in-use") return "Email já cadastrado";
+  if (code === "auth/invalid-email") return "Email inválido";
+  if (code === "auth/weak-password") return "Senha muito fraca";
+  return "Não foi possível criar a conta. Tente novamente";
+}
+
+type FieldKey = "name" | "email" | "phone" | "password" | "confirm";
 
 export default function CadastroPage() {
   const router = useRouter();
+  const { cadastrar } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -36,6 +48,7 @@ export default function CadastroPage() {
 
   const validateName = (v: string) => (!v.trim() ? "Nome é obrigatório" : v.trim().length < 3 ? "Mínimo 3 caracteres" : null);
   const validateEmail = (v: string) => (!v.trim() ? "Email é obrigatório" : !validEmail(v) ? "Email inválido" : null);
+  const validatePhone = (v: string) => (v.replace(/\D/g, "").length < 10 ? "Telefone inválido" : null);
   const validatePwd = (v: string) => (!v ? "Senha é obrigatória" : v.length < 6 ? "Mínimo 6 caracteres" : null);
   const validateConfirm = (v: string, pwd: string) => (!v ? "Confirme sua senha" : v !== pwd ? "As senhas não coincidem" : null);
 
@@ -43,12 +56,13 @@ export default function CadastroPage() {
     navTimer.current = setTimeout(() => router.push("/"), 3500);
   };
 
-  const submit = () => {
+  const submit = async () => {
     const nameErr = validateName(name);
     const emailErr = validateEmail(email);
+    const phoneErr = validatePhone(phone);
     const pwdErr = validatePwd(password);
     const confirmErr = validateConfirm(confirm, password);
-    setErrors({ name: nameErr, email: emailErr, password: pwdErr, confirm: confirmErr });
+    setErrors({ name: nameErr, email: emailErr, phone: phoneErr, password: pwdErr, confirm: confirmErr });
 
     if (!terms) {
       setTermsError("Você precisa aceitar os termos para continuar");
@@ -56,20 +70,19 @@ export default function CadastroPage() {
       setTermsError(null);
     }
 
-    if (nameErr || emailErr || pwdErr || confirmErr || !terms) return;
+    if (nameErr || emailErr || phoneErr || pwdErr || confirmErr || !terms) return;
 
     setLoading(true);
     setAuthError(null);
-    setTimeout(() => {
-      if (email.trim().toLowerCase() === "existe@novaeratintas.com") {
-        setLoading(false);
-        setAuthError("Email já cadastrado");
-        return;
-      }
+    try {
+      await cadastrar(name.trim(), email.trim(), password, phone);
       setLoading(false);
       setSuccess(true);
       goHome();
-    }, 1500);
+    } catch (err) {
+      setLoading(false);
+      setAuthError(mapFirebaseAuthError(err));
+    }
   };
 
   const socialLogin = () => {
@@ -175,6 +188,26 @@ export default function CadastroPage() {
               error={errors.email}
               bg={bg("email")}
               border={border("email")}
+            />
+
+            <Field
+              label="Telefone"
+              type="tel"
+              value={phone}
+              onChange={(v) => {
+                setPhone(maskPhone(v));
+                setErrors((s) => ({ ...s, phone: undefined }));
+              }}
+              onFocus={() => setFocused((s) => ({ ...s, phone: true }))}
+              onBlur={() => {
+                setFocused((s) => ({ ...s, phone: false }));
+                setErrors((s) => ({ ...s, phone: validatePhone(phone) }));
+              }}
+              disabled={disabled}
+              placeholder="(00) 00000-0000"
+              error={errors.phone}
+              bg={bg("phone")}
+              border={border("phone")}
             />
 
             <PasswordField

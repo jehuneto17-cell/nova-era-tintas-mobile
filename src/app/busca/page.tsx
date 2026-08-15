@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Search, X, Clock } from "lucide-react";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
+import { useBuscas } from "@/lib/hooks";
 
-const RECENTS_SEED = ["Tinta vermelha", "Pincel 2 polegadas", "Rolo de lã", "Tinta acrílica", "Primer branco"];
-const POPULARES = ["Tintas Premium", "Rolos Profissionais", "Pincéis Nylon", "Primers Coloridos", "Seladores Poliuretano", "Acabamentos Foscos"];
+const RECENTS_SEED: string[] = [];
 
 export default function BuscaPage() {
   const router = useRouter();
+  const buscas = useBuscas();
+  const populares = buscas?.mostrar ? buscas.termos : [];
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [recents, setRecents] = useState(RECENTS_SEED);
@@ -135,27 +137,29 @@ export default function BuscaPage() {
         <div className="h-px my-2 mx-4 bg-[#EDEFED]" />
 
         {/* populares */}
-        <div className="px-4 pt-4 pb-8">
-          <div
-            className="uppercase text-[#999999] mb-2.5"
-            style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 11.5, letterSpacing: "0.08em" }}
-          >
-            Populares
+        {populares.length > 0 && (
+          <div className="px-4 pt-4 pb-8">
+            <div
+              className="uppercase text-[#999999] mb-2.5"
+              style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 11.5, letterSpacing: "0.08em" }}
+            >
+              Populares
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {populares.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => goSearch(t)}
+                  className="border border-[#E6E9E6] bg-white text-black px-[13px] py-2 rounded-full cursor-pointer hover:bg-[#F5F5F5] hover:border-ne-green transition-colors"
+                  style={{ fontFamily: "var(--font-manrope)", fontSize: 13, fontWeight: 600 }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {POPULARES.map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => goSearch(t)}
-                className="border border-[#E6E9E6] bg-white text-black px-[13px] py-2 rounded-full cursor-pointer hover:bg-[#F5F5F5] hover:border-ne-green transition-colors"
-                style={{ fontFamily: "var(--font-manrope)", fontSize: 13, fontWeight: 600 }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
 
       <Toast bottom={96} />

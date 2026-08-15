@@ -2,23 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Minus, Plus, X, ShoppingBag, Truck } from "lucide-react";
-import { brl } from "@/lib/data";
-import { useApp, useCartItems } from "@/lib/store";
+import { brl, useStore } from "@/lib/store";
+import { useFrete } from "@/lib/hooks";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 
-const FREE_SHIPPING_MIN = 100;
-const SHIPPING_FEE = 14.9;
-
 export default function CarrinhoPage() {
   const router = useRouter();
-  const { removeFromCart, setQty, clearCart, cartTotal } = useApp();
-  const items = useCartItems();
+  const { items, subtotal, setQty, removeItem, resetCart } = useStore();
+  const frete = useFrete();
 
-  const shipping = cartTotal >= FREE_SHIPPING_MIN ? 0 : SHIPPING_FEE;
-  const total = cartTotal + shipping;
-  const missing = Math.max(0, FREE_SHIPPING_MIN - cartTotal);
+  const freeShippingMin = frete?.gratis_acima ?? 0;
+  const shippingFee = frete?.valor ?? 0;
+  const shipping = freeShippingMin > 0 && subtotal >= freeShippingMin ? 0 : shippingFee;
+  const total = subtotal + shipping;
+  const missing = Math.max(0, freeShippingMin - subtotal);
 
   return (
     <>
@@ -40,7 +39,7 @@ export default function CarrinhoPage() {
           {items.length > 0 && (
             <button
               type="button"
-              onClick={clearCart}
+              onClick={resetCart}
               className="text-[12px] font-semibold text-[#E63946] cursor-pointer hover:underline"
             >
               Limpar
@@ -53,53 +52,58 @@ export default function CarrinhoPage() {
         <>
           <div className="ne-scroll absolute inset-0 bg-[#F7F8F7] pt-[92px] pb-[248px]">
             <div className="flex flex-col gap-3 px-4">
-              {items.map(({ id, qty, product }) => (
-                <div key={id} className="relative flex gap-3 p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
+              {items.map((line) => (
+                <div key={`${line.produtoId}::${line.variacao}`} className="relative flex gap-3 p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
                   <button
-                    onClick={() => router.push(`/produto/${id}`)}
+                    onClick={() => router.push(`/produto/${line.produtoId}`)}
                     className="w-20 h-20 flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1] text-left"
                   >
-                    <ImagePlaceholder label={product.ph} />
+                    {line.shotUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={line.shotUrl} alt={line.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImagePlaceholder label={line.shot} />
+                    )}
                   </button>
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     <div className="flex items-start gap-2">
-                      <button onClick={() => router.push(`/produto/${id}`)} className="flex-1 min-w-0 text-left">
+                      <button onClick={() => router.push(`/produto/${line.produtoId}`)} className="flex-1 min-w-0 text-left">
                         <div
                           className="line-clamp-2"
                           style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, lineHeight: 1.25, color: "#000" }}
                         >
-                          {product.name}
+                          {line.title}
                         </div>
                       </button>
                       <button
                         type="button"
-                        onClick={() => removeFromCart(id)}
+                        onClick={() => removeItem(line.produtoId, line.variacao)}
                         className="flex-none w-6 h-6 rounded-full bg-[#F4F6F4] cursor-pointer flex items-center justify-center hover:bg-[#FFE5E5] transition-colors"
                       >
                         <X size={13} color="#E63946" strokeWidth={2.4} />
                       </button>
                     </div>
-                    <div className="text-[11px] font-medium text-[#999999]">{product.unit}</div>
+                    <div className="text-[11px] font-medium text-[#999999]">{line.specs}</div>
 
                     <div className="mt-auto flex items-end justify-between gap-2">
                       <div>
-                        <div className="text-[10.5px] font-semibold text-[#999999]">{brl(product.price)} / un.</div>
+                        <div className="text-[10.5px] font-semibold text-[#999999]">{brl(line.price)} / un.</div>
                         <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15.5, letterSpacing: "-0.02em", color: "#00B20B" }}>
-                          {brl(product.price * qty)}
+                          {brl(line.price * line.qty)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2.5 border border-[#E6E9E6] rounded-lg px-2 py-1.5">
                         <button
                           type="button"
-                          onClick={() => (qty <= 1 ? removeFromCart(id) : setQty(id, qty - 1))}
+                          onClick={() => (line.qty <= 1 ? removeItem(line.produtoId, line.variacao) : setQty(line.produtoId, line.variacao, line.qty - 1))}
                           className="w-6 h-6 rounded-md bg-[#F4F6F4] cursor-pointer flex items-center justify-center hover:bg-[#E6E9E6] transition-colors"
                         >
                           <Minus size={12} color="#012418" strokeWidth={2.4} />
                         </button>
-                        <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 13, minWidth: 14, textAlign: "center" }}>{qty}</span>
+                        <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 13, minWidth: 14, textAlign: "center" }}>{line.qty}</span>
                         <button
                           type="button"
-                          onClick={() => setQty(id, Math.min(99, qty + 1))}
+                          onClick={() => setQty(line.produtoId, line.variacao, Math.min(99, line.qty + 1))}
                           className="w-6 h-6 rounded-md bg-[#F4F6F4] cursor-pointer flex items-center justify-center hover:bg-[#E6E9E6] transition-colors"
                         >
                           <Plus size={12} color="#012418" strokeWidth={2.4} />
@@ -111,18 +115,20 @@ export default function CarrinhoPage() {
               ))}
             </div>
 
-            <div className="px-4 pt-4">
-              <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[#EAF8EB] border border-[#CDEFCF]">
-                <Truck size={17} color="#00941F" strokeWidth={2} className="flex-none mt-0.5" />
-                <div className="text-[12px] font-medium leading-snug text-[#00941F]">
-                  {missing > 0 ? (
-                    <>Faltam <strong>{brl(missing)}</strong> para você ganhar frete grátis!</>
-                  ) : (
-                    <>Você garantiu frete grátis nesse pedido!</>
-                  )}
+            {freeShippingMin > 0 && (
+              <div className="px-4 pt-4">
+                <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[#EAF8EB] border border-[#CDEFCF]">
+                  <Truck size={17} color="#00941F" strokeWidth={2} className="flex-none mt-0.5" />
+                  <div className="text-[12px] font-medium leading-snug text-[#00941F]">
+                    {missing > 0 ? (
+                      <>Faltam <strong>{brl(missing)}</strong> para você ganhar frete grátis!</>
+                    ) : (
+                      <>Você garantiu frete grátis nesse pedido!</>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* sticky footer */}
@@ -130,7 +136,7 @@ export default function CarrinhoPage() {
             <div className="flex flex-col gap-1.5 mb-3.5">
               <div className="flex items-center justify-between text-[13px] font-medium text-[#666]">
                 <span>Subtotal</span>
-                <span>{brl(cartTotal)}</span>
+                <span>{brl(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between text-[13px] font-medium text-[#666]">
                 <span>Frete</span>

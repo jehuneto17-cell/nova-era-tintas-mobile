@@ -5,11 +5,23 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { SuccessConfetti } from "@/components/SuccessConfetti";
+import { useAuth } from "@/lib/auth";
+
+function mapFirebaseAuthError(err: unknown): string {
+  const code = (err as { code?: string })?.code ?? "";
+  if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+    return "Email ou senha incorretos";
+  }
+  if (code === "auth/invalid-email") return "Email inválido";
+  if (code === "auth/too-many-requests") return "Muitas tentativas. Tente novamente mais tarde";
+  return "Não foi possível entrar. Tente novamente";
+}
 
 const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -35,7 +47,7 @@ export default function LoginPage() {
     navTimer.current = setTimeout(() => router.push("/"), 3500);
   };
 
-  const submit = () => {
+  const submit = async () => {
     const emailErr = validateEmail(email);
     const pwdErr = validatePwd(password);
     setErrors({ email: emailErr, password: pwdErr });
@@ -43,17 +55,15 @@ export default function LoginPage() {
 
     setLoading(true);
     setAuthError(null);
-    setTimeout(() => {
-      const ok = password === "senha123";
-      if (ok) {
-        setLoading(false);
-        setSuccess(true);
-        goHome();
-      } else {
-        setLoading(false);
-        setAuthError("Email ou senha incorretos");
-      }
-    }, 1400);
+    try {
+      await login(email, password);
+      setLoading(false);
+      setSuccess(true);
+      goHome();
+    } catch (err) {
+      setLoading(false);
+      setAuthError(mapFirebaseAuthError(err));
+    }
   };
 
   const socialLogin = () => {

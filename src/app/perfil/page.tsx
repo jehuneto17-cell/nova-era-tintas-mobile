@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, Check, User, Package, Settings, FileText, ChevronRight } from "lucide-react";
-import { useApp } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/lib/toast";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -17,9 +18,14 @@ const MENU = [
 
 export default function PerfilPage() {
   const router = useRouter();
-  const { flash } = useApp();
+  const { flash } = useToast();
+  const { user, cliente, loading: authLoading, logout } = useAuth();
   const [showLogout, setShowLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) router.push("/entrada");
+  }, [authLoading, user, router]);
 
   const onMenuClick = (id: string) => {
     if (id === "pedidos") {
@@ -45,14 +51,13 @@ export default function PerfilPage() {
     setTimeout(() => setShowLogout(true), 800);
   };
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
     setLoggingOut(true);
-    setTimeout(() => {
-      setLoggingOut(false);
-      setShowLogout(false);
-      flash("Você saiu da sua conta");
-      router.push("/entrada");
-    }, 1000);
+    await logout();
+    setLoggingOut(false);
+    setShowLogout(false);
+    flash("Você saiu da sua conta");
+    router.push("/entrada");
   };
 
   return (
@@ -104,9 +109,9 @@ export default function PerfilPage() {
             </div>
           </div>
           <div className="mt-3.5 text-center" style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 19, letterSpacing: "-0.01em", color: "#012418" }}>
-            João Silva
+            {cliente?.nome || "—"}
           </div>
-          <div className="mt-1 text-[13px] font-medium text-[#999999]">joao@novaeratintas.com</div>
+          <div className="mt-1 text-[13px] font-medium text-[#999999]">{user?.email || "—"}</div>
         </div>
 
         {/* menu list */}

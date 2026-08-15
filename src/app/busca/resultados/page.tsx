@@ -6,14 +6,17 @@ import { ChevronLeft, Search, X, SearchX } from "lucide-react";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
-import { PRODUCTS, brl } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { useProdutos } from "@/lib/hooks";
+import { precoMinimo, capaUrl } from "@/lib/produtos";
+import { brl } from "@/lib/store";
+import { useToast } from "@/lib/toast";
 
 function ResultadosContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { flash } = useApp();
-  const initialQuery = params.get("q") ?? "Tinta vermelha";
+  const { flash } = useToast();
+  const { produtos } = useProdutos();
+  const initialQuery = params.get("q") ?? "";
 
   const [query, setQuery] = useState(initialQuery);
   const [draft, setDraft] = useState(initialQuery);
@@ -22,13 +25,13 @@ function ResultadosContent() {
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return PRODUCTS;
+    if (!q) return produtos;
     const words = q.split(/\s+/);
-    return PRODUCTS.filter((p) => {
-      const n = (p.name + " " + p.desc).toLowerCase();
+    return produtos.filter((p) => {
+      const n = (p.nome + " " + p.descricao).toLowerCase();
       return words.some((w) => n.includes(w.replace(/(a|o)$/, "")));
     });
-  }, [query]);
+  }, [query, produtos]);
 
   const shown = list.slice(0, page * 6);
 
@@ -96,24 +99,31 @@ function ResultadosContent() {
         {list.length > 0 ? (
           <>
             <div className="grid grid-cols-2 gap-3 p-4">
-              {shown.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => router.push(`/produto/${p.id}`)}
-                  className="box-border border border-[#EDEFED] rounded-2xl overflow-hidden bg-white cursor-pointer text-left flex flex-col shadow-[0_2px_8px_rgba(0,0,0,.1)] hover:shadow-[0_4px_16px_rgba(0,0,0,.15)] hover:bg-[#F5F5F5] transition-all"
-                  style={{ animation: "ne-fadein .3s ease-out" }}
-                >
-                  <div className="w-full h-[150px] bg-[#F5F5F5]">
-                    <ImagePlaceholder label={"Foto " + p.name} />
-                  </div>
-                  <div className="p-2.5 flex flex-col gap-1">
-                    <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.name}</span>
-                    <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>{brl(p.price)}</span>
-                    <span className="text-xs text-[#999999]">★ {(p.rating ?? 4.5).toFixed(1)}</span>
-                  </div>
-                </button>
-              ))}
+              {shown.map((p) => {
+                const foto = capaUrl(p);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => router.push(`/produto/${p.id}`)}
+                    className="box-border border border-[#EDEFED] rounded-2xl overflow-hidden bg-white cursor-pointer text-left flex flex-col shadow-[0_2px_8px_rgba(0,0,0,.1)] hover:shadow-[0_4px_16px_rgba(0,0,0,.15)] hover:bg-[#F5F5F5] transition-all"
+                    style={{ animation: "ne-fadein .3s ease-out" }}
+                  >
+                    <div className="w-full h-[150px] bg-[#F5F5F5]">
+                      {foto ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                      ) : (
+                        <ImagePlaceholder label={"Foto " + p.nome} />
+                      )}
+                    </div>
+                    <div className="p-2.5 flex flex-col gap-1">
+                      <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.nome}</span>
+                      <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>{brl(precoMinimo(p))}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             {shown.length < list.length && (
               <div className="px-4 pb-4">

@@ -1,50 +1,63 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, MapPin, MessageCircle } from "lucide-react";
-import { brl } from "@/lib/data";
-import { useApp, useCartItems } from "@/lib/store";
+import { ChevronLeft, MapPin, Info } from "lucide-react";
+import { brl, useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import { useFrete } from "@/lib/hooks";
+import { useToast } from "@/lib/toast";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 
-const FREE_SHIPPING_MIN = 100;
-const SHIPPING_FEE = 14.9;
-const WHATSAPP_NUMBER = "5535984141300";
-
-const CUSTOMER = {
-  nome: "João Silva",
-  email: "joao@email.com",
-  telefone: "(35) 98414-1300",
-  endereco: "Rua das Flores 123 — Itaú de Minas, MG",
-};
-
 export default function CheckoutPage() {
   const router = useRouter();
-  const { flash, cartTotal } = useApp();
-  const items = useCartItems();
+  const { flash } = useToast();
+  const { items, subtotal } = useStore();
+  const { user, cliente, loading: authLoading } = useAuth();
+  const frete = useFrete();
 
-  const shipping = cartTotal >= FREE_SHIPPING_MIN ? 0 : SHIPPING_FEE;
-  const total = cartTotal + shipping;
+  const [enderecoIdOverride, setEnderecoIdOverride] = useState<string | null>(null);
 
-  const whatsappHref = useMemo(() => {
-    const lines: string[] = [];
-    lines.push("Olá! Gostaria de confirmar meu pedido na Nova Era Tintas:");
-    lines.push("");
-    items.forEach(({ qty, product }) => {
-      lines.push(`• ${qty}x ${product.name} — ${brl(product.price * qty)}`);
-    });
-    lines.push("");
-    lines.push(`Subtotal: ${brl(cartTotal)}`);
-    lines.push(`Frete: ${shipping === 0 ? "Grátis" : brl(shipping)}`);
-    lines.push(`Total: ${brl(total)}`);
-    lines.push("");
-    lines.push(`Nome: ${CUSTOMER.nome}`);
-    lines.push(`Endereço: ${CUSTOMER.endereco}`);
-    const message = lines.join("\n");
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  }, [items, cartTotal, shipping, total]);
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
+    if (items.length === 0) router.push("/carrinho");
+  }, [items.length, router]);
+
+  const enderecoPadraoId = cliente && cliente.enderecos.length > 0
+    ? (cliente.enderecos.find((e) => e.principal) ?? cliente.enderecos[0]).id
+    : null;
+  const enderecoId = enderecoIdOverride ?? enderecoPadraoId;
+  const setEnderecoId = setEnderecoIdOverride;
+
+  const freeShippingMin = frete?.gratis_acima ?? 0;
+  const shippingFee = frete?.valor ?? 0;
+  const shipping = freeShippingMin > 0 && subtotal >= freeShippingMin ? 0 : shippingFee;
+  const total = subtotal + shipping;
+
+  const enderecoSelecionado = cliente?.enderecos.find((e) => e.id === enderecoId) ?? null;
+
+  const continuar = () => {
+    if (!enderecoSelecionado) {
+      flash("Selecione um endereço para continuar");
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        "net_checkout",
+        JSON.stringify({ endereco: enderecoSelecionado.texto, frete: shipping, enderecoMudou: false })
+      );
+    } catch {
+      // sessionStorage indisponível — segue mesmo assim, confirmacao usa fallback
+    }
+    router.push("/confirmacao");
+  };
 
   return (
     <>
@@ -60,34 +73,65 @@ export default function CheckoutPage() {
           className="flex-1 min-w-0 text-center overflow-hidden text-ellipsis whitespace-nowrap"
           style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em", color: "#000" }}
         >
-          Resumo do Pedido
+          Finalizar Pedido
         </div>
         <div className="flex-none w-10" />
       </div>
 
       <div className="ne-scroll absolute inset-0 bg-[#F7F8F7] pt-[92px] pb-[266px]">
-        {/* customer data */}
+        {/* address */}
         <div className="px-4">
           <div className="p-4 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2">
                 <MapPin size={16} color="#00B20B" strokeWidth={2.2} />
-                <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>Seus dados</span>
+                <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>Endereço de entrega</span>
               </div>
               <button
                 type="button"
-                onClick={() => flash("Edição de dados em breve")}
+                onClick={() => router.push("/perfil/editar")}
                 className="text-[12px] font-semibold text-ne-blue cursor-pointer hover:underline"
               >
-                Editar Dados
+                Gerenciar Endereços
               </button>
             </div>
-            <div className="flex flex-col gap-1 text-[13px] font-medium text-[#333] leading-relaxed">
-              <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, color: "#000" }}>{CUSTOMER.nome}</span>
-              <span>{CUSTOMER.email}</span>
-              <span>{CUSTOMER.telefone}</span>
-              <span>{CUSTOMER.endereco}</span>
-            </div>
+
+            {cliente && cliente.enderecos.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {cliente.enderecos.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setEnderecoId(e.id)}
+                    className="flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer text-left transition-colors"
+                    style={{ borderColor: enderecoId === e.id ? "#00B20B" : "#E5E5E5", background: enderecoId === e.id ? "#F0F8F5" : "#FFFFFF" }}
+                  >
+                    <span
+                      className="flex-none w-[18px] h-[18px] mt-0.5 rounded-full border-2 flex items-center justify-center"
+                      style={{ borderColor: enderecoId === e.id ? "#00B20B" : "#D8DED9" }}
+                    >
+                      {enderecoId === e.id && <span className="w-[9px] h-[9px] rounded-full bg-ne-green" />}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13, color: "#000" }}>{e.rotulo}</div>
+                      <div className="text-[12.5px] text-[#666] mt-0.5">{e.texto}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2.5 py-4 text-center">
+                <div className="text-[13px] font-medium text-[#666]">Você ainda não tem um endereço salvo.</div>
+                <button
+                  type="button"
+                  onClick={() => router.push("/perfil/editar")}
+                  className="h-10 px-4 rounded-xl bg-ne-green text-white cursor-pointer border-0"
+                  style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13 }}
+                >
+                  Adicionar Endereço
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -97,24 +141,29 @@ export default function CheckoutPage() {
             Seus itens
           </div>
           <div className="flex flex-col gap-2.5">
-            {items.map(({ id, qty, product }) => (
-              <div key={id} className="flex gap-3 p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
+            {items.map((line) => (
+              <div key={`${line.produtoId}::${line.variacao}`} className="flex gap-3 p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
                 <div className="w-14 h-14 flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
-                  <ImagePlaceholder label={product.ph} />
+                  {line.shotUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={line.shotUrl} alt={line.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <ImagePlaceholder label={line.shot} />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
                   <div
                     className="line-clamp-1"
                     style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13, color: "#000" }}
                   >
-                    {product.name}
+                    {line.title}
                   </div>
                   <div className="text-[11px] font-medium text-[#999999]">
-                    {qty}x · {product.unit}
+                    {line.qty}x · {line.specs}
                   </div>
                 </div>
                 <div className="flex-none flex items-center" style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>
-                  {brl(product.price * qty)}
+                  {brl(line.price * line.qty)}
                 </div>
               </div>
             ))}
@@ -124,9 +173,9 @@ export default function CheckoutPage() {
         {/* info banner */}
         <div className="px-4 mt-3.5">
           <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[#E6F6FA] border border-[#C7E9F1]">
-            <MessageCircle size={17} color="#0088B7" strokeWidth={2} className="flex-none mt-0.5" />
+            <Info size={17} color="#0088B7" strokeWidth={2} className="flex-none mt-0.5" />
             <div className="text-[12px] font-medium leading-snug text-[#046485]">
-              Seu pedido será finalizado pelo WhatsApp. Ao confirmar, você enviará os itens e o total diretamente para a nossa loja.
+              Ao continuar, seu pedido será registrado e você poderá pagar via PIX na próxima etapa.
             </div>
           </div>
         </div>
@@ -137,7 +186,7 @@ export default function CheckoutPage() {
         <div className="flex flex-col gap-1.5 mb-3.5">
           <div className="flex items-center justify-between text-[13px] font-medium text-[#666]">
             <span>Subtotal</span>
-            <span>{brl(cartTotal)}</span>
+            <span>{brl(subtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-[13px] font-medium text-[#666]">
             <span>Frete</span>
@@ -153,17 +202,15 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener"
-          onClick={() => flash("Abrindo o WhatsApp...")}
-          className="w-full h-[52px] rounded-2xl bg-ne-green cursor-pointer flex items-center justify-center gap-2 hover:bg-[#00c40d] active:scale-[.98] transition-transform no-underline"
-          style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 15, color: "#fff" }}
+        <button
+          type="button"
+          onClick={continuar}
+          disabled={!enderecoSelecionado}
+          className="w-full h-[52px] rounded-2xl bg-ne-green cursor-pointer flex items-center justify-center gap-2 hover:bg-[#00c40d] active:scale-[.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 15, color: "#fff", border: "none" }}
         >
-          <MessageCircle size={18} strokeWidth={2.2} color="#fff" />
-          Abrir WhatsApp
-        </a>
+          Continuar para Pagamento
+        </button>
         <button
           type="button"
           onClick={() => router.push("/carrinho")}

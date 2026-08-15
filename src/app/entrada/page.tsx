@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useApp } from "@/lib/store";
+import { useToast } from "@/lib/toast";
 import { Toast } from "@/components/Toast";
 
 export default function EntradaPage() {
   const router = useRouter();
-  const { flash } = useApp();
+  const { flash } = useToast();
 
   return (
     <div className="absolute inset-0 bg-gradient-to-b from-white to-[#F8F8F8] flex flex-col overflow-hidden">

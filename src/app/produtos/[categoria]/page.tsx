@@ -1,17 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, SlidersHorizontal, X, Check, PackageSearch } from "lucide-react";
+import { ChevronLeft, SlidersHorizontal, X, PackageSearch } from "lucide-react";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
-import { PRODUCTS, CATEGORIES, brl } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { getProdutosPorCategoria, precoMinimo, estoqueTotal, capaUrl, subscribeProdutos } from "@/lib/produtos";
+import { subscribeCategorias } from "@/lib/categorias";
+import { brl } from "@/lib/store";
+import { useToast } from "@/lib/toast";
+import type { Categoria, Produto } from "@/lib/types";
 
-type Sort = "rel" | "asc" | "desc" | "top";
+type Sort = "rel" | "asc" | "desc";
 
-const BRANDS = ["Suvinil", "Coral", "Metalatex"];
 const num = (s: string) => {
   const d = s.replace(/[^\d]/g, "");
   return d === "" ? null : parseInt(d, 10);
@@ -20,47 +22,69 @@ const num = (s: string) => {
 export default function ProdutosFiltradosPage() {
   const params = useParams<{ categoria: string }>();
   const router = useRouter();
-  const { flash } = useApp();
+  const { flash } = useToast();
 
   const categoriaId = params.categoria;
-  const categoriaMeta = CATEGORIES.find((c) => c.id === categoriaId);
-  const categoriaLabel = categoriaMeta?.label ?? "Produtos";
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [result, setResult] = useState<{ categoriaId: string; produtos: Produto[] } | null>(null);
+
+  useEffect(() => {
+    const unsub = subscribeCategorias(setCategorias);
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (categoriaId === "todos") {
+      const unsub = subscribeProdutos((p) => {
+        setResult({ categoriaId, produtos: p });
+      });
+      return unsub;
+    }
+    let active = true;
+    getProdutosPorCategoria(categoriaId).then((p) => {
+      if (!active) return;
+      setResult({ categoriaId, produtos: p });
+    });
+    return () => {
+      active = false;
+    };
+  }, [categoriaId]);
+
+  const loading = result?.categoriaId !== categoriaId;
+  const produtos = useMemo(() => (!loading ? result?.produtos ?? [] : []), [loading, result]);
+
+  const categoriaMeta = categorias.find((c) => c.id === categoriaId);
+  const categoriaLabel = categoriaId === "todos" ? "Produtos" : categoriaMeta?.nome ?? "Produtos";
 
   const [sort, setSort] = useState<Sort>("rel");
   const [modal, setModal] = useState(false);
   const [page, setPage] = useState(1);
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
-  const [brands, setBrands] = useState<string[]>([]);
   const [stockOnly, setStockOnly] = useState(false);
-  const [draft, setDraft] = useState({ min: "", max: "", brands: [] as string[], stockOnly: false });
+  const [draft, setDraft] = useState({ min: "", max: "", stockOnly: false });
   const [priceError, setPriceError] = useState<string | null>(null);
-
-  const baseList = useMemo(
-    () => (categoriaId === "todos" || !categoriaMeta ? PRODUCTS : PRODUCTS.filter((p) => p.cat === categoriaId)),
-    [categoriaId, categoriaMeta]
-  );
 
   const filtered = useMemo(() => {
     const a = num(min);
     const b = num(max);
-    let list = baseList.filter(
-      (p) =>
-        (a === null || p.price >= a) &&
-        (b === null || p.price <= b) &&
-        (brands.length === 0 || (p.brand && brands.includes(p.brand))) &&
-        (!stockOnly || p.stock !== false)
-    );
-    if (sort === "asc") list = [...list].sort((x, y) => x.price - y.price);
-    if (sort === "desc") list = [...list].sort((x, y) => y.price - x.price);
-    if (sort === "top") list = [...list].sort((x, y) => (y.sold ?? 0) - (x.sold ?? 0));
+    let list = produtos.filter((p) => {
+      const preco = precoMinimo(p);
+      return (
+        (a === null || preco >= a) &&
+        (b === null || preco <= b) &&
+        (!stockOnly || estoqueTotal(p) > 0)
+      );
+    });
+    if (sort === "asc") list = [...list].sort((x, y) => precoMinimo(x) - precoMinimo(y));
+    if (sort === "desc") list = [...list].sort((x, y) => precoMinimo(y) - precoMinimo(x));
     return list;
-  }, [baseList, min, max, brands, stockOnly, sort]);
+  }, [produtos, min, max, stockOnly, sort]);
 
   const shown = filtered.slice(0, page * 6);
 
   const openModal = () => {
-    setDraft({ min, max, brands, stockOnly });
+    setDraft({ min, max, stockOnly });
     setPriceError(null);
     setModal(true);
   };
@@ -74,7 +98,6 @@ export default function ProdutosFiltradosPage() {
     }
     setMin(draft.min);
     setMax(draft.max);
-    setBrands(draft.brands);
     setStockOnly(draft.stockOnly);
     setPage(1);
     setModal(false);
@@ -84,9 +107,8 @@ export default function ProdutosFiltradosPage() {
   const clearFilters = () => {
     setMin("");
     setMax("");
-    setBrands([]);
     setStockOnly(false);
-    setDraft({ min: "", max: "", brands: [], stockOnly: false });
+    setDraft({ min: "", max: "", stockOnly: false });
     setPage(1);
     setPriceError(null);
     setModal(false);
@@ -124,7 +146,6 @@ export default function ProdutosFiltradosPage() {
             <option value="rel">Relevância</option>
             <option value="asc">Menor preço</option>
             <option value="desc">Maior preço</option>
-            <option value="top">Mais vendidos</option>
           </select>
         </div>
         <div className="flex items-center justify-between gap-2.5">
@@ -142,32 +163,44 @@ export default function ProdutosFiltradosPage() {
       </div>
 
       <div className="ne-scroll absolute inset-x-0 top-[190px] bottom-[72px]">
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div className="py-16 flex items-center justify-center">
+            <span className="w-8 h-8 rounded-full border-[3px] border-[#E5E5E5] border-t-ne-green" style={{ animation: "ne-spin .8s linear infinite" }} />
+          </div>
+        ) : filtered.length > 0 ? (
           <>
             <div className="grid grid-cols-2 gap-3 p-4">
-              {shown.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => router.push(`/produto/${p.id}`)}
-                  className="box-border border border-[#EDEFED] rounded-2xl overflow-hidden bg-white cursor-pointer text-left flex flex-col shadow-[0_2px_8px_rgba(0,0,0,.1)] hover:shadow-[0_4px_16px_rgba(0,0,0,.15)] hover:bg-[#F5F5F5] transition-all"
-                >
-                  <div className="relative w-full h-[150px] bg-[#F5F5F5]">
-                    <ImagePlaceholder label={"Foto " + p.name} />
-                    {p.stock === false && (
-                      <span className="absolute top-2 left-2 py-[3px] px-2 rounded-[7px] bg-[#012418]/82 text-white text-[10px] font-bold" style={{ fontFamily: "var(--font-archivo)" }}>
-                        Sem estoque
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-2.5 flex flex-col gap-1">
-                    <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.name}</span>
-                    <span className="text-xs text-[#999999]">{p.brand}</span>
-                    <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>{brl(p.price)}</span>
-                    <span className="text-xs text-[#999999]">★ {(p.rating ?? 4.5).toFixed(1)}</span>
-                  </div>
-                </button>
-              ))}
+              {shown.map((p) => {
+                const preco = precoMinimo(p);
+                const emEstoque = estoqueTotal(p) > 0;
+                const foto = capaUrl(p);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => router.push(`/produto/${p.id}`)}
+                    className="box-border border border-[#EDEFED] rounded-2xl overflow-hidden bg-white cursor-pointer text-left flex flex-col shadow-[0_2px_8px_rgba(0,0,0,.1)] hover:shadow-[0_4px_16px_rgba(0,0,0,.15)] hover:bg-[#F5F5F5] transition-all"
+                  >
+                    <div className="relative w-full h-[150px] bg-[#F5F5F5]">
+                      {foto ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                      ) : (
+                        <ImagePlaceholder label={"Foto " + p.nome} />
+                      )}
+                      {!emEstoque && (
+                        <span className="absolute top-2 left-2 py-[3px] px-2 rounded-[7px] bg-[#012418]/82 text-white text-[10px] font-bold" style={{ fontFamily: "var(--font-archivo)" }}>
+                          Sem estoque
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2.5 flex flex-col gap-1">
+                      <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.nome}</span>
+                      <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>{brl(preco)}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             {shown.length < filtered.length && (
               <div className="px-4 pb-4 -mt-1">
@@ -241,33 +274,6 @@ export default function ProdutosFiltradosPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Marca</span>
-              <div className="ne-scroll max-h-[150px] flex flex-col gap-2.5">
-                {BRANDS.map((b) => {
-                  const on = draft.brands.includes(b);
-                  const count = baseList.filter((p) => p.brand === b).length;
-                  return (
-                    <button
-                      key={b}
-                      type="button"
-                      onClick={() => setDraft((d) => ({ ...d, brands: on ? d.brands.filter((x) => x !== b) : [...d.brands, b] }))}
-                      className="flex items-center gap-2.5 border-0 bg-transparent p-0 cursor-pointer text-left"
-                    >
-                      <span
-                        className="flex-none w-[18px] h-[18px] rounded-[5px] box-border flex items-center justify-center transition-colors"
-                        style={{ border: `1.5px solid ${on ? "#00B20B" : "#D8DED9"}`, background: on ? "#00B20B" : "#FFFFFF" }}
-                      >
-                        {on && <Check size={11} color="#FFFFFF" strokeWidth={3.4} />}
-                      </span>
-                      <span className="text-sm text-[#000]">{b}</span>
-                      <span className="text-xs text-[#999999]">{count} itens</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
               <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Disponibilidade</span>
               <button
                 type="button"
@@ -278,7 +284,7 @@ export default function ProdutosFiltradosPage() {
                   className="flex-none w-[18px] h-[18px] rounded-[5px] box-border flex items-center justify-center transition-colors"
                   style={{ border: `1.5px solid ${draft.stockOnly ? "#00B20B" : "#D8DED9"}`, background: draft.stockOnly ? "#00B20B" : "#FFFFFF" }}
                 >
-                  {draft.stockOnly && <Check size={11} color="#FFFFFF" strokeWidth={3.4} />}
+                  {draft.stockOnly && <span style={{ color: "#fff", fontSize: 11 }}>✓</span>}
                 </span>
                 <span className="text-sm text-[#000]">Apenas em estoque</span>
               </button>

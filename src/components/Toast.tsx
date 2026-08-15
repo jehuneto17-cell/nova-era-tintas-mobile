@@ -1,9 +1,9 @@
 "use client";
 
-import { useApp } from "@/lib/store";
+import { useToast } from "@/lib/toast";
 
 export function Toast({ bottom = 100 }: { bottom?: number }) {
-  const { toast } = useApp();
+  const { toast } = useToast();
   if (!toast) return null;
   return (
     <div

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Manrope } from "next/font/google";
 import "./globals.css";
-import { AppProviders } from "@/lib/store";
+import { AuthProvider } from "@/lib/auth";
+import { StoreProvider } from "@/lib/store";
+import { ToastProvider } from "@/lib/toast";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -30,11 +32,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${archivo.variable} ${manrope.variable}`}>
       <body>
-        <AppProviders>
-          <div className="ne-viewport">
-            <div className="ne-phone">{children}</div>
-          </div>
-        </AppProviders>
+        <AuthProvider>
+          <StoreProvider>
+            <ToastProvider>
+              <div className="ne-viewport">
+                <div className="ne-phone">{children}</div>
+              </div>
+            </ToastProvider>
+          </StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );

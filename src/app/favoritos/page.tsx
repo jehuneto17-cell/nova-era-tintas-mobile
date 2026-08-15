@@ -3,22 +3,22 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, X } from "lucide-react";
-import { PRODUCTS, brl } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { useProdutos } from "@/lib/hooks";
+import { precoMinimo, capaUrl } from "@/lib/produtos";
+import { brl, useStore } from "@/lib/store";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 
-const SUGGESTIONS = ["Tintas", "Pincéis", "Rolos"];
-
 export default function FavoritosPage() {
   const router = useRouter();
-  const { favorites, toggleFavorite, flash } = useApp();
+  const { favorites, toggleFavorite } = useStore();
+  const { produtos } = useProdutos();
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
 
   const items = useMemo(
-    () => PRODUCTS.filter((p) => favorites[p.id]),
-    [favorites]
+    () => produtos.filter((p) => favorites.includes(p.id)),
+    [produtos, favorites]
   );
 
   const handleRemove = (id: string) => {
@@ -46,53 +46,60 @@ export default function FavoritosPage() {
       <div className="ne-scroll absolute inset-0 bg-[#F7F8F7] pt-[92px] pb-[88px]">
         {items.length > 0 ? (
           <div className="px-4 pt-2 grid grid-cols-2 gap-3">
-            {items.map((p) => (
-              <div
-                key={p.id}
-                className="relative bg-white rounded-2xl overflow-hidden shadow-[0_2px_10px_rgba(1,36,24,.06)]"
-                style={{
-                  animation: removing[p.id] ? "ne-fadeout .19s ease-out forwards" : "ne-in .25s ease-out",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => router.push(`/produto/${p.id}`)}
-                  className="block w-full h-[120px] bg-[#F1F3F1] text-left"
-                >
-                  <ImagePlaceholder label={p.ph} />
-                </button>
-
+            {items.map((p) => {
+              const foto = capaUrl(p);
+              return (
                 <div
-                  className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow-[0_2px_6px_rgba(0,0,0,.14)]"
-                  aria-hidden
+                  key={p.id}
+                  className="relative bg-white rounded-2xl overflow-hidden shadow-[0_2px_10px_rgba(1,36,24,.06)]"
+                  style={{
+                    animation: removing[p.id] ? "ne-fadeout .19s ease-out forwards" : "ne-in .25s ease-out",
+                  }}
                 >
-                  <Heart size={12} color="#00B20B" fill="#00B20B" strokeWidth={2} />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleRemove(p.id)}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white cursor-pointer flex items-center justify-center shadow-[0_2px_6px_rgba(0,0,0,.14)] hover:bg-[#FFE5E5] transition-colors"
-                >
-                  <X size={13} color="#E63946" strokeWidth={2.4} />
-                </button>
-
-                <div className="p-3">
-                  <button type="button" onClick={() => router.push(`/produto/${p.id}`)} className="block text-left w-full">
-                    <div
-                      className="line-clamp-2"
-                      style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13, lineHeight: 1.3, color: "#000" }}
-                    >
-                      {p.name}
-                    </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/produto/${p.id}`)}
+                    className="block w-full h-[120px] bg-[#F1F3F1] text-left"
+                  >
+                    {foto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImagePlaceholder label={p.nome} />
+                    )}
                   </button>
-                  <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15.5, letterSpacing: "-0.02em", color: "#00B20B" }} className="mt-1.5">
-                    {brl(p.price)}
+
+                  <div
+                    className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center shadow-[0_2px_6px_rgba(0,0,0,.14)]"
+                    aria-hidden
+                  >
+                    <Heart size={12} color="#00B20B" fill="#00B20B" strokeWidth={2} />
                   </div>
-                  <div className="text-[10.5px] font-semibold text-[#999999] mt-0.5">{p.unit}</div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(p.id)}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white cursor-pointer flex items-center justify-center shadow-[0_2px_6px_rgba(0,0,0,.14)] hover:bg-[#FFE5E5] transition-colors"
+                  >
+                    <X size={13} color="#E63946" strokeWidth={2.4} />
+                  </button>
+
+                  <div className="p-3">
+                    <button type="button" onClick={() => router.push(`/produto/${p.id}`)} className="block text-left w-full">
+                      <div
+                        className="line-clamp-2"
+                        style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13, lineHeight: 1.3, color: "#000" }}
+                      >
+                        {p.nome}
+                      </div>
+                    </button>
+                    <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15.5, letterSpacing: "-0.02em", color: "#00B20B" }} className="mt-1.5">
+                      {brl(precoMinimo(p))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="px-8 pt-[80px] text-center">
@@ -113,25 +120,6 @@ export default function FavoritosPage() {
             >
               Continuar Comprando
             </button>
-
-            <div className="mt-7">
-              <div className="text-[11.5px] font-semibold uppercase text-[#999999] mb-2.5" style={{ letterSpacing: "0.06em" }}>
-                Talvez você goste
-              </div>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => flash(`Veja nossa seleção de ${s.toLowerCase()}`)}
-                    className="border border-[#E6E9E6] bg-white text-black px-4 py-2 rounded-full cursor-pointer hover:bg-[#F5F5F5] hover:border-ne-green transition-colors"
-                    style={{ fontFamily: "var(--font-manrope)", fontSize: 13, fontWeight: 600 }}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </div>

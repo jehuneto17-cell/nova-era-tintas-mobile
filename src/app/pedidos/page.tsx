@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Package } from "lucide-react";
-import { ORDERS, STATUS_META, brl, type OrderStatus } from "@/lib/data";
-import { useApp } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/lib/toast";
+import { subscribePedidosDoCliente } from "@/lib/pedidos";
+import { pedidoTotal, STATUS_META } from "@/lib/pedidoHelpers";
+import { brl, useStore } from "@/lib/store";
+import type { Pedido, PedidoEstado } from "@/lib/types";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 
 type TabId = "todos" | "a_pagar" | "pendentes" | "confirmados" | "entregues";
 
-const TAB_STATUS: Record<Exclude<TabId, "todos">, OrderStatus[]> = {
+const TAB_STATUS: Record<Exclude<TabId, "todos">, PedidoEstado[]> = {
   a_pagar: ["aguardando_pagamento"],
   pendentes: ["em_negociacao", "aguardando_confirmacao"],
   confirmados: ["pago", "separacao", "enviado"],
@@ -34,8 +38,8 @@ const EMPTY_COPY: Record<TabId, { title: string; sub: string; cta: string }> = {
   entregues: { title: "Nenhuma entrega ainda", sub: "Pedidos entregues aparecem aqui.", cta: "Ver produtos" },
 };
 
-function ctaFor(status: OrderStatus): { label: string; bg: string; fg: string } {
-  switch (status) {
+function ctaFor(estado: PedidoEstado): { label: string; bg: string; fg: string } {
+  switch (estado) {
     case "entregue":
       return { label: "Pedir Novamente", bg: "#00B20B", fg: "#FFFFFF" };
     case "aguardando_pagamento":
@@ -49,46 +53,69 @@ function ctaFor(status: OrderStatus): { label: string; bg: string; fg: string } 
 
 export default function PedidosPage() {
   const router = useRouter();
-  const { flash } = useApp();
+  const { flash } = useToast();
+  const { addItem } = useStore();
+  const { user, cliente, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<TabId>("todos");
-  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<{ clienteId: string; pedidos: Pedido[] } | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 900);
-    return () => clearTimeout(t);
-  }, []);
+    if (!authLoading && !user) router.push("/login");
+  }, [authLoading, user, router]);
 
-  const sorted = useMemo(() => [...ORDERS].sort((a, b) => b.ts - a.ts), []);
+  useEffect(() => {
+    if (!cliente) return;
+    return subscribePedidosDoCliente(cliente.id, (list) => {
+      setResult({ clienteId: cliente.id, pedidos: list });
+    });
+  }, [cliente]);
+
+  const loading = !cliente || result?.clienteId !== cliente.id;
+  const pedidos = useMemo(() => (!loading ? result?.pedidos ?? [] : []), [loading, result]);
 
   const counts = useMemo(() => {
-    const c: Record<TabId, number> = { todos: sorted.length, a_pagar: 0, pendentes: 0, confirmados: 0, entregues: 0 };
-    for (const o of sorted) {
+    const c: Record<TabId, number> = { todos: pedidos.length, a_pagar: 0, pendentes: 0, confirmados: 0, entregues: 0 };
+    for (const p of pedidos) {
       for (const id of Object.keys(TAB_STATUS) as (keyof typeof TAB_STATUS)[]) {
-        if (TAB_STATUS[id].includes(o.status)) c[id] += 1;
+        if (TAB_STATUS[id].includes(p.estado)) c[id] += 1;
       }
     }
     return c;
-  }, [sorted]);
+  }, [pedidos]);
 
   const list = useMemo(() => {
-    if (tab === "todos") return sorted;
-    return sorted.filter((o) => TAB_STATUS[tab].includes(o.status));
-  }, [sorted, tab]);
+    if (tab === "todos") return pedidos;
+    return pedidos.filter((p) => TAB_STATUS[tab].includes(p.estado));
+  }, [pedidos, tab]);
 
-  const onCta = (orderId: string, status: OrderStatus) => {
-    if (status === "em_negociacao") {
-      router.push("/pedidos/negociacao");
+  const onCta = (pedido: Pedido) => {
+    if (pedido.estado === "em_negociacao") {
+      router.push(`/pedidos/negociacao?id=${pedido.id}`);
       return;
     }
-    if (status === "aguardando_pagamento") {
-      router.push("/pagamento");
+    if (pedido.estado === "aguardando_pagamento") {
+      router.push(`/pagamento?id=${pedido.id}`);
       return;
     }
-    if (status === "entregue") {
+    if (pedido.estado === "entregue") {
+      pedido.itens.forEach((item) => {
+        addItem(
+          {
+            produtoId: item.produtoId,
+            variacao: item.variacao,
+            title: item.nome,
+            specs: item.variacao,
+            price: item.preco,
+            oldPrice: null,
+            shot: item.nome.split(" ")[0],
+          },
+          item.qtd
+        );
+      });
       flash("Itens adicionados ao carrinho novamente");
       return;
     }
-    flash("Rastreamento do pedido " + orderId);
+    router.push(`/pedidos/${pedido.id}`);
   };
 
   const empty = EMPTY_COPY[tab];
@@ -110,7 +137,7 @@ export default function PedidosPage() {
               Meus Pedidos
             </div>
             <div className="flex-none text-[12px] font-semibold text-[#999999]">
-              {sorted.length} {sorted.length === 1 ? "pedido" : "pedidos"}
+              {pedidos.length} {pedidos.length === 1 ? "pedido" : "pedidos"}
             </div>
           </div>
 
@@ -170,18 +197,19 @@ export default function PedidosPage() {
             </div>
           ) : list.length > 0 ? (
             <div className="px-4 pt-4 flex flex-col gap-3">
-              {list.map((o) => {
-                const meta = STATUS_META[o.status];
-                const cta = ctaFor(o.status);
+              {list.map((p) => {
+                const meta = STATUS_META[p.estado];
+                const cta = ctaFor(p.estado);
+                const total = pedidoTotal(p);
                 return (
-                  <div key={o.id} className="p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]" style={{ animation: "ne-rise .25s ease-out both" }}>
+                  <div key={p.id} className="p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]" style={{ animation: "ne-rise .25s ease-out both" }}>
                     <div className="flex gap-3">
                       <div className="w-[76px] h-[76px] flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
-                        <ImagePlaceholder label={o.loja} />
+                        <ImagePlaceholder label="Nova Era Tintas" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>{o.loja}</div>
+                          <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Nova Era Tintas</div>
                           <span
                             className="flex-none px-2 py-0.5 rounded-full whitespace-nowrap"
                             style={{ background: meta.bg, color: meta.fg, fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 10.5 }}
@@ -190,12 +218,12 @@ export default function PedidosPage() {
                           </span>
                         </div>
                         <div className="mt-1 text-[11.5px] font-medium text-[#999999]">
-                          #{o.numero} • {o.data}
+                          {p.numero} • {new Date(p.criadoEm).toLocaleDateString("pt-BR")}
                         </div>
                         <div className="mt-1.5 flex items-center justify-between">
-                          <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15.5, color: "#00B20B" }}>{brl(o.total)}</div>
+                          <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15.5, color: "#00B20B" }}>{brl(total)}</div>
                           <div className="text-[11px] font-semibold text-[#999999]">
-                            {o.items} {o.items === 1 ? "produto" : "produtos"}
+                            {p.itens.length} {p.itens.length === 1 ? "produto" : "produtos"}
                           </div>
                         </div>
                       </div>
@@ -203,7 +231,7 @@ export default function PedidosPage() {
                     <div className="mt-3 flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => router.push("/pedidos/" + o.id)}
+                        onClick={() => router.push("/pedidos/" + p.id)}
                         className="flex-1 h-9 rounded-lg border border-[#E5E5E5] bg-white cursor-pointer hover:bg-[#F5F5F5] hover:border-ne-green transition-colors"
                         style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5, color: "#012418" }}
                       >
@@ -211,7 +239,7 @@ export default function PedidosPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => onCta(o.id, o.status)}
+                        onClick={() => onCta(p)}
                         className="flex-1 h-9 rounded-lg border-0 cursor-pointer active:scale-[.98] transition-transform"
                         style={{ background: cta.bg, color: cta.fg, fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5 }}
                       >
