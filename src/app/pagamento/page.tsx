@@ -54,7 +54,7 @@ export default function PagamentoPage() {
   const confirmSend = () => {
     if (!receipt) return;
     flash("Comprovante enviado para análise!");
-    setTimeout(() => router.push("/aguardando-confirmacao"), 900);
+    setTimeout(() => router.push("/comprovante/aguardando"), 900);
   };
 
   return (

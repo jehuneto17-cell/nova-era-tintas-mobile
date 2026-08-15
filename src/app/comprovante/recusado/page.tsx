@@ -120,7 +120,7 @@ export default function ComprovanteRecusadoPage() {
         </button>
         <button
           type="button"
-          onClick={() => router.push("/enviar-comprovante")}
+          onClick={() => router.push("/comprovante/enviar")}
           className="flex-1 h-11 border-0 rounded-xl bg-[#E63946] text-white cursor-pointer flex items-center justify-center gap-1.5 hover:bg-[#CC2E36] transition-colors"
           style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13 }}
         >

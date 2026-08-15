@@ -20,7 +20,7 @@ export default function BuscaPage() {
     const q = term.trim();
     if (!q) return;
     setRecents((prev) => [q, ...prev.filter((r) => r.toLowerCase() !== q.toLowerCase())].slice(0, 8));
-    router.push(`/resultados-busca?q=${encodeURIComponent(q)}`);
+    router.push(`/busca/resultados?q=${encodeURIComponent(q)}`);
   };
 
   return (

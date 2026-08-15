@@ -77,7 +77,7 @@ export default function PedidosPage() {
 
   const onCta = (orderId: string, status: OrderStatus) => {
     if (status === "em_negociacao") {
-      router.push("/pedido-negociacao");
+      router.push("/pedidos/negociacao");
       return;
     }
     if (status === "aguardando_pagamento") {
@@ -203,7 +203,7 @@ export default function PedidosPage() {
                     <div className="mt-3 flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => router.push("/pedido/" + o.id)}
+                        onClick={() => router.push("/pedidos/" + o.id)}
                         className="flex-1 h-9 rounded-lg border border-[#E5E5E5] bg-white cursor-pointer hover:bg-[#F5F5F5] hover:border-ne-green transition-colors"
                         style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5, color: "#012418" }}
                       >

@@ -78,7 +78,7 @@ export default function PerfilPage() {
             <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 17, color: "#FFFFFF" }}>Meu Perfil</div>
             <button
               type="button"
-              onClick={() => router.push("/editar-perfil")}
+              onClick={() => router.push("/perfil/editar")}
               className="px-3 py-1.5 rounded-full bg-white/15 cursor-pointer hover:bg-white/25 transition-colors"
               style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5, color: "#FFFFFF" }}
             >
@@ -136,7 +136,7 @@ export default function PerfilPage() {
         <div className="px-4 pt-6 flex flex-col gap-3">
           <button
             type="button"
-            onClick={() => goDelayed("/editar-perfil")}
+            onClick={() => goDelayed("/perfil/editar")}
             className="flowbtn flowbtn-green h-12 rounded-2xl bg-white"
           >
             <span className="flowbtn-arrow left" aria-hidden="true">

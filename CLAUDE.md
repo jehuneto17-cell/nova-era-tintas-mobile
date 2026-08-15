@@ -43,7 +43,9 @@ Não há camada de fetch/API; as páginas importam diretamente deste arquivo. Co
 
 ### Estrutura de rotas
 
-As rotas ficam em `src/app/*/page.tsx` (App Router, sem route groups). Rotas dinâmicas relevantes: `produto/[id]`, `produtos/[categoria]`, `pedido/[id]`. Os nomes de página/rota estão em português e mapeiam o fluxo da loja: `entrada` → `login`/`cadastro` → home (`/`) → `categorias`/`busca`/`resultados-busca` → `produto/[id]` → `carrinho` → `checkout` → `pagamento` → `enviar-comprovante`/`aguardando-confirmacao`/`comprovante-recusado` → `confirmacao` → `pedidos`/`pedido/[id]`/`pedido-negociacao`/`pedido-atualizado` → `perfil`/`editar-perfil`, além de `favoritos` e `avaliar`.
+As rotas ficam em `src/app/*/page.tsx` (App Router, sem route groups), organizadas em subpastas aninhadas para espelhar a estrutura do repositório web (`Nova Era Tintas - Web`). Rotas dinâmicas relevantes: `produto/[id]`, `produtos/[categoria]`, `pedidos/[id]`. Os nomes de página/rota estão em português e mapeiam o fluxo da loja: `entrada` → `login`/`cadastro` → home (`/`) → `categorias`/`busca`/`busca/resultados` → `produto/[id]` → `carrinho` → `checkout` → `pagamento` → `comprovante/enviar`/`comprovante/aguardando`/`comprovante/recusado` → `confirmacao` → `pedidos`/`pedidos/[id]`/`pedidos/negociacao`/`pedidos/atualizado` → `perfil`/`perfil/editar`, além de `favoritos` e `avaliar`.
+
+> **Importante:** essa estrutura de rotas foi alinhada deliberadamente ao padrão do repositório web em `2026-08-15` (subpastas aninhadas em vez de nomes com hífen no nível raiz, ex.: `comprovante/enviar` em vez de `enviar-comprovante`). Ao criar novas rotas, siga o padrão web (subpasta por fluxo) e não reintroduza nomes flat com hífen.
 
 Componentes de chrome compartilhados ficam em `src/components/`: `TabBar` (navegação inferior, aba ativa derivada de `usePathname()`), `BackHeader` (header de navegação "voltar" usado por páginas internas), `StatusBar`/`PhoneStatusBarStatic` (barra de status estilo iOS fake para a casca do celular), `Toast` (renderiza `useApp().toast`), `SuccessConfetti`.
 

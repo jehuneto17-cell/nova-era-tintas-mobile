@@ -42,7 +42,7 @@ export default function EnviarComprovantePage() {
     setTimeout(() => {
       setStatus("success");
       flash("Comprovante enviado com sucesso");
-      setTimeout(() => router.push("/aguardando-confirmacao"), 900);
+      setTimeout(() => router.push("/comprovante/aguardando"), 900);
     }, 1200);
   };
 
