@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingBag, Star } from "lucide-react";
+import { Search, ShoppingBag, Star, LayoutGrid, PaintBucket, Paintbrush, PaintRoller, Droplet, SprayCan, Wrench, Heart } from "lucide-react";
 import { PRODUCTS, CATEGORIES, brl } from "@/lib/data";
 import { useApp } from "@/lib/store";
 import { TabBar } from "@/components/TabBar";
@@ -54,10 +54,13 @@ export default function HomePage() {
   const cartById = Object.fromEntries(cart.map((i) => [i.id, i.qty]));
 
   const focusSearch = () => {
-    setExpanded(true);
-    setSearchOpen(true);
     const el = scrollRef.current;
-    if (el && el.scrollTop < 160) el.scrollTo({ top: 200, behavior: "smooth" });
+    if (el && el.scrollTop < 160) {
+      el.scrollTo({ top: 200, behavior: "smooth" });
+    } else {
+      setExpanded(true);
+    }
+    setSearchOpen(true);
     setTimeout(() => inputRef.current?.focus(), 320);
   };
 
@@ -127,33 +130,6 @@ export default function HomePage() {
             </div>
           )}
         </button>
-      </div>
-
-      {/* fake status bar (over hero) */}
-      <div
-        className="absolute top-0 left-4 z-30 h-[72px] pointer-events-none flex items-end justify-between pb-1.5"
-        style={{
-          fontFamily: "var(--font-archivo)",
-          fontWeight: 600,
-          fontSize: 13,
-          color: expanded ? "#012418" : "#FFFFFF",
-          textShadow: expanded ? "none" : "0 1px 3px rgba(0,0,0,.4)",
-          transition: "color .3s ease-out",
-          width: 318,
-        }}
-      >
-        <span>9:41</span>
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-end gap-0.5">
-            <div className="w-[3px] h-[5px] rounded-[1px]" style={{ background: "currentColor" }} />
-            <div className="w-[3px] h-[7px] rounded-[1px]" style={{ background: "currentColor" }} />
-            <div className="w-[3px] h-[9px] rounded-[1px]" style={{ background: "currentColor" }} />
-            <div className="w-[3px] h-[11px] rounded-[1px] opacity-40" style={{ background: "currentColor" }} />
-          </div>
-          <div className="w-[22px] h-[11px] rounded-[3px] box-border p-[1.5px]" style={{ border: "1.5px solid currentColor", opacity: 0.7 }}>
-            <div className="w-[72%] h-full rounded-[1.5px]" style={{ background: "currentColor" }} />
-          </div>
-        </div>
       </div>
 
       {/* search history overlay */}
@@ -267,13 +243,13 @@ export default function HomePage() {
               </div>
               <div className="mt-2 text-[13px] font-medium text-[#999999]">Itaú de Minas, MG</div>
             </div>
-            <div className="flex-none w-[91px] px-1.5 pt-2.5 pb-2.5 rounded-xl bg-[#F4F6F4] text-center h-[67px]">
+            <div className="flex-none w-[91px] px-1.5 py-2.5 rounded-xl bg-[#F4F6F4] text-center">
               <div className="flex items-center justify-center gap-1.5" style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, color: "#012418" }}>
                 <Star size={14} fill="#00B20B" color="#00B20B" />
                 4.8
               </div>
               <div className="mt-1" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>229</div>
-              <div className="text-[11px] font-medium text-[#999999] leading-tight">avaliações</div>
+              <div className="mt-0.5 text-[11px] font-medium text-[#999999] leading-tight">avaliações</div>
             </div>
           </div>
 
@@ -308,7 +284,7 @@ export default function HomePage() {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setCat(c.id)}
+                  onClick={() => (c.id === "todos" ? router.push("/categorias") : setCat(c.id))}
                   className="min-w-[78px] px-3 pt-[11px] pb-2.5 rounded-2xl cursor-pointer flex flex-col items-center gap-2 transition-colors"
                   style={{
                     border: `1px solid ${active ? "#00B20B" : "#E6E9E6"}`,
@@ -339,44 +315,44 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* list layout */}
+        {/* grid layout */}
         {list.length > 0 ? (
-          <div className="flex flex-col gap-3 px-5 pb-6">
+          <div className="grid grid-cols-2 gap-3 px-5 pb-6">
             {list.map((p) => {
               const inCart = !!cartById[p.id];
               const fav = isFavorite(p.id);
               return (
-                <div key={p.id} className="relative flex gap-3.5 p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
+                <div key={p.id} className="relative flex flex-col gap-2 p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]">
                   <button
                     onClick={() => router.push(`/produto/${p.id}`)}
-                    className="w-24 h-24 flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1] text-left"
+                    className="relative w-full aspect-square rounded-[10px] overflow-hidden bg-[#F1F3F1] text-left"
                   >
                     <ImagePlaceholder label={p.ph} />
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(p.id);
+                      }}
+                      className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center cursor-pointer"
+                      style={{ color: fav ? "#00B20B" : "#D7DBD7" }}
+                    >
+                      <Heart size={15} fill={fav ? "currentColor" : "none"} strokeWidth={2} />
+                    </span>
                   </button>
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <div className="flex items-start gap-2">
-                      <button onClick={() => router.push(`/produto/${p.id}`)} className="flex-1 min-w-0 text-left">
-                        <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14.5, lineHeight: 1.25, color: "#000" }}>{p.name}</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleFavorite(p.id)}
-                        className="flex-none text-[15px] leading-none cursor-pointer"
-                        style={{ color: fav ? "#00B20B" : "#D7DBD7" }}
-                      >
-                        ♥
-                      </button>
-                    </div>
-                    <div className="text-[11.5px] font-medium leading-snug text-[#999999]">{p.desc}</div>
-                    <div className="mt-auto flex items-end justify-between gap-2">
+                    <button onClick={() => router.push(`/produto/${p.id}`)} className="text-left">
+                      <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.name}</div>
+                    </button>
+                    <div className="text-[11px] font-medium leading-snug text-[#999999] line-clamp-2">{p.desc}</div>
+                    <div className="mt-auto flex items-end justify-between gap-2 pt-1">
                       <div>
-                        <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 17, letterSpacing: "-0.02em", color: "#00B20B" }}>{brl(p.price)}</div>
-                        <div className="text-[10.5px] font-semibold text-[#999999] mt-0.5">{p.unit}</div>
+                        <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em", color: "#00B20B" }}>{brl(p.price)}</div>
+                        <div className="text-[10px] font-semibold text-[#999999] mt-0.5">{p.unit}</div>
                       </div>
                       <button
                         type="button"
                         onClick={() => addToCart(p.id)}
-                        className="relative w-[38px] h-[38px] rounded-[11px] bg-ne-green text-white cursor-pointer text-xl font-medium flex items-center justify-center shadow-[0_4px_12px_rgba(0,178,11,.3)] hover:bg-[#00c40d] active:scale-95 transition-transform"
+                        className="relative w-[34px] h-[34px] flex-none rounded-[11px] bg-ne-green text-white cursor-pointer text-xl font-medium flex items-center justify-center shadow-[0_4px_12px_rgba(0,178,11,.3)] hover:bg-[#00c40d] active:scale-95 transition-transform"
                       >
                         +
                         {inCart && (
@@ -404,14 +380,7 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className="px-5 pb-[118px]">
-          <div className="p-4 px-[18px] rounded-2xl bg-[#012418]">
-            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#FFFFFF" }}>Retire na loja ou receba em casa</div>
-            <div className="mt-1.5 text-xs font-medium leading-relaxed text-white/55">
-              Av. Principal, Itaú de Minas — MG · Seg a Sáb, 8h às 18h
-            </div>
-          </div>
-        </div>
+        <div className="pb-[118px]" />
       </div>
 
       {/* cart bar */}
@@ -443,15 +412,20 @@ export default function HomePage() {
 function CategoryGlyph({ id }: { id: string }) {
   switch (id) {
     case "todos":
-      return <div className="w-4 h-4 rounded-[4px] border-[2.5px] border-current rotate-45" />;
+      return <LayoutGrid size={19} strokeWidth={2.2} />;
     case "tintas":
-      return <div className="w-[17px] h-[17px] rounded-full bg-current" />;
+      return <PaintBucket size={19} strokeWidth={2.2} />;
     case "pinceis":
-      return <div className="w-1.5 h-5 rounded-[3px_3px_1px_1px] bg-current rotate-[18deg]" />;
+      return <Paintbrush size={19} strokeWidth={2.2} />;
     case "rolos":
-      return <div className="w-5 h-[11px] rounded-[5px] bg-current" />;
+      return <PaintRoller size={19} strokeWidth={2.2} />;
+    case "primers":
+      return <Droplet size={19} strokeWidth={2.2} />;
+    case "seladores":
+      return <SprayCan size={19} strokeWidth={2.2} />;
     case "acabamentos":
-      return <div className="w-[18px] h-[18px] rounded-full border-[3px] border-current" />;
+    case "acessorios":
+      return <Wrench size={19} strokeWidth={2.2} />;
     default:
       return null;
   }
