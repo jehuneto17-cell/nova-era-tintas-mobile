@@ -78,7 +78,7 @@ export default function HomePage() {
         }}
       >
         <div
-          className="relative flex-none h-12 box-border overflow-hidden transition-all duration-300"
+          className="relative flex-none h-12 box-border overflow-hidden"
           style={{
             width: expanded ? 300 : 48,
             borderRadius: expanded ? 14 : 24,
@@ -87,6 +87,9 @@ export default function HomePage() {
             WebkitBackdropFilter: expanded ? "blur(12px) saturate(1.4)" : "blur(6px) saturate(1.3)",
             border: `1.5px solid ${expanded ? "rgba(0,178,11,.65)" : "rgba(255,255,255,.45)"}`,
             boxShadow: "0 4px 14px rgba(0,0,0,.10)",
+            transition: "width .3s, border-radius .3s, border-color .3s",
+            isolation: "isolate",
+            transform: "translateZ(0)",
           }}
         >
           <input
