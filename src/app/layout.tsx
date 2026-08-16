@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { StoreProvider } from "@/lib/store";
 import { ToastProvider } from "@/lib/toast";
+import { SplashGate } from "@/components/SplashGate";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -36,7 +37,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <StoreProvider>
             <ToastProvider>
               <div className="ne-viewport">
-                <div className="ne-phone">{children}</div>
+                <div className="ne-phone">
+                  <SplashGate>{children}</SplashGate>
+                </div>
               </div>
             </ToastProvider>
           </StoreProvider>
