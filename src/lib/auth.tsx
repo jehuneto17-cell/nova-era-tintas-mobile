@@ -2,14 +2,16 @@
 
 import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   type User,
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "./firebase";
-import { criarCliente, subscribeCliente } from "./clientes";
+import { criarCliente, getCliente, subscribeCliente } from "./clientes";
 import type { Cliente } from "./types";
 
 type AuthValue = {
@@ -17,6 +19,7 @@ type AuthValue = {
   cliente: Cliente | null;
   loading: boolean;
   login: (email: string, senha: string) => Promise<void>;
+  loginComGoogle: () => Promise<void>;
   cadastrar: (
     nome: string,
     email: string,
@@ -59,6 +62,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login: async (email, senha) => {
       await signInWithEmailAndPassword(auth, email, senha);
+    },
+    loginComGoogle: async () => {
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+      const existente = await getCliente(cred.user.uid);
+      if (!existente) {
+        await criarCliente(cred.user.uid, {
+          nome: cred.user.displayName ?? "",
+          email: cred.user.email ?? "",
+          telefone: cred.user.phoneNumber ?? "",
+        });
+      }
     },
     cadastrar: async (nome, email, senha, telefone) => {
       const cred = await createUserWithEmailAndPassword(auth, email, senha);

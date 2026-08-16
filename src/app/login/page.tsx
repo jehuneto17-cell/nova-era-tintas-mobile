@@ -6,6 +6,7 @@ import { Eye, EyeOff, Lock } from "lucide-react";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { SuccessConfetti } from "@/components/SuccessConfetti";
 import { useAuth } from "@/lib/auth";
+import { useBranding } from "@/lib/hooks";
 
 function mapFirebaseAuthError(err: unknown): string {
   const code = (err as { code?: string })?.code ?? "";
@@ -21,7 +22,8 @@ const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginComGoogle } = useAuth();
+  const branding = useBranding();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -66,14 +68,18 @@ export default function LoginPage() {
     }
   };
 
-  const socialLogin = () => {
+  const googleLogin = async () => {
     setLoading(true);
     setAuthError(null);
-    setTimeout(() => {
+    try {
+      await loginComGoogle();
       setLoading(false);
       setSuccess(true);
       goHome();
-    }, 1200);
+    } catch (err) {
+      setLoading(false);
+      setAuthError(mapFirebaseAuthError(err));
+    }
   };
 
   const disabled = loading;
@@ -101,7 +107,12 @@ export default function LoginPage() {
               <div className="w-[100px] h-[100px] rounded-[20px] bg-[#012418] mb-6" style={{ animation: "ne-pulse 1.1s ease-in-out infinite" }} />
             ) : (
               <div className="w-[100px] h-[100px] rounded-[20px] overflow-hidden bg-[#012418] mb-6" style={{ animation: "ne-rise .3s ease-out both" }}>
-                <ImagePlaceholder label="Logo Nova Era Tintas" />
+                {branding?.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={branding.logo_url} alt="Logo Nova Era Tintas" className="w-full h-full object-cover" />
+                ) : (
+                  <ImagePlaceholder label="Logo Nova Era Tintas" />
+                )}
               </div>
             )}
             <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 22, lineHeight: 1.3, letterSpacing: "-0.02em", color: "#012418" }}>
@@ -111,8 +122,8 @@ export default function LoginPage() {
           </div>
 
           <div className="flex gap-3 mb-5">
-            <SocialButton label="Google" disabled={disabled} onClick={socialLogin} icon={<GoogleIcon />} />
-            <SocialButton label="Apple" disabled={disabled} onClick={socialLogin} icon={<AppleIcon />} />
+            <SocialButton label="Google" disabled={disabled} onClick={googleLogin} icon={<GoogleIcon />} />
+            <SocialButton label="Apple" disabled icon={<AppleIcon />} />
           </div>
 
           <div className="flex items-center gap-2.5 mb-5">
@@ -315,7 +326,7 @@ function Field({
   );
 }
 
-function SocialButton({ label, icon, disabled, onClick }: { label: string; icon: React.ReactNode; disabled: boolean; onClick: () => void }) {
+function SocialButton({ label, icon, disabled, onClick }: { label: string; icon: React.ReactNode; disabled: boolean; onClick?: () => void }) {
   return (
     <button
       type="button"

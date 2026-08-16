@@ -6,6 +6,7 @@ import { Eye, EyeOff, Lock } from "lucide-react";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { SuccessConfetti } from "@/components/SuccessConfetti";
 import { useAuth } from "@/lib/auth";
+import { useBranding } from "@/lib/hooks";
 import { maskPhone } from "@/lib/utils";
 
 const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -22,7 +23,8 @@ type FieldKey = "name" | "email" | "phone" | "password" | "confirm";
 
 export default function CadastroPage() {
   const router = useRouter();
-  const { cadastrar } = useAuth();
+  const { cadastrar, loginComGoogle } = useAuth();
+  const branding = useBranding();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -85,14 +87,18 @@ export default function CadastroPage() {
     }
   };
 
-  const socialLogin = () => {
+  const googleLogin = async () => {
     setLoading(true);
     setAuthError(null);
-    setTimeout(() => {
+    try {
+      await loginComGoogle();
       setLoading(false);
       setSuccess(true);
       goHome();
-    }, 1200);
+    } catch (err) {
+      setLoading(false);
+      setAuthError(mapFirebaseAuthError(err));
+    }
   };
 
   const disabled = loading;
@@ -121,7 +127,12 @@ export default function CadastroPage() {
               <div className="w-[100px] h-[100px] rounded-[20px] bg-[#012418] mb-6" style={{ animation: "ne-pulse 1.1s ease-in-out infinite" }} />
             ) : (
               <div className="w-[100px] h-[100px] rounded-[20px] overflow-hidden bg-[#012418] mb-6" style={{ animation: "ne-rise .3s ease-out both" }}>
-                <ImagePlaceholder label="Logo Nova Era Tintas" />
+                {branding?.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={branding.logo_url} alt="Logo Nova Era Tintas" className="w-full h-full object-cover" />
+                ) : (
+                  <ImagePlaceholder label="Logo Nova Era Tintas" />
+                )}
               </div>
             )}
             <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 22, lineHeight: 1.3, letterSpacing: "-0.02em", color: "#012418" }}>
@@ -131,8 +142,8 @@ export default function CadastroPage() {
           </div>
 
           <div className="flex gap-3 mb-5">
-            <SocialButton label="Google" disabled={disabled} onClick={socialLogin} icon={<GoogleIcon />} />
-            <SocialButton label="Apple" disabled={disabled} onClick={socialLogin} icon={<AppleIcon />} />
+            <SocialButton label="Google" disabled={disabled} onClick={googleLogin} icon={<GoogleIcon />} />
+            <SocialButton label="Apple" disabled icon={<AppleIcon />} />
           </div>
 
           <div className="flex items-center gap-2.5 mb-5">
@@ -443,7 +454,7 @@ function PasswordField({
   );
 }
 
-function SocialButton({ label, icon, disabled, onClick }: { label: string; icon: React.ReactNode; disabled: boolean; onClick: () => void }) {
+function SocialButton({ label, icon, disabled, onClick }: { label: string; icon: React.ReactNode; disabled: boolean; onClick?: () => void }) {
   return (
     <button
       type="button"
