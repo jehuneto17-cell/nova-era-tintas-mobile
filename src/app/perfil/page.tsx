@@ -183,7 +183,18 @@ export default function PerfilPage() {
           </button>
         </div>
 
-        <div className="pt-6 pb-4 text-center text-[11.5px] font-medium text-[#999999]">Versão do app: 1.0.0</div>
+        <div className="pt-6 pb-1 text-center text-[11.5px] font-medium text-[#999999]">Versão do app: 1.0.0</div>
+        <div className="pb-4 text-center text-[11px] font-medium text-[#999999]">
+          Desenvolvido por{" "}
+          <a
+            href="https://www.instagram.com/jehu_dev_e.commerce/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ne-green hover:underline"
+          >
+            @JEHU_DEV_E.COMMERCE
+          </a>
+        </div>
       </div>
 
       {/* logout modal */}
