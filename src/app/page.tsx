@@ -247,9 +247,9 @@ export default function HomePage() {
         {/* hero */}
         <div className="relative h-[290px] bg-[#012418]">
           <div className="absolute inset-0">
-            {branding?.banner_url ? (
+            {branding?.banner_url_mobile ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={branding.banner_url} alt="Banner" className="w-full h-full object-cover" />
+              <img src={branding.banner_url_mobile} alt="Banner" className="w-full h-full object-cover" />
             ) : (
               <ImagePlaceholder label="foto de banner — tintas, rolos e pincéis" />
             )}
