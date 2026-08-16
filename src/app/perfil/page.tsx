@@ -37,7 +37,7 @@ export default function PerfilPage() {
       return;
     }
     if (id === "config") {
-      flash("Configurações em breve");
+      router.push("/perfil/editar");
       return;
     }
     flash("Termos & Privacidade em breve");
@@ -99,7 +99,12 @@ export default function PerfilPage() {
               className="w-[140px] h-[140px] rounded-full overflow-hidden bg-[#F1F3F1] box-content"
               style={{ border: "5px solid #FFFFFF", boxShadow: "0 8px 24px rgba(1,36,24,.18)" }}
             >
-              <ImagePlaceholder shape="circle" label="Foto de perfil" iconSize={32} />
+              {cliente?.fotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={cliente.fotoUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
+              ) : (
+                <ImagePlaceholder shape="circle" label="Foto de perfil" iconSize={32} />
+              )}
             </div>
             <div
               className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-ne-green border-[3px] border-white flex items-center justify-center"
@@ -139,25 +144,6 @@ export default function PerfilPage() {
 
         {/* flow buttons */}
         <div className="px-4 pt-6 flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => goDelayed("/perfil/editar")}
-            className="flowbtn flowbtn-green h-12 rounded-2xl bg-white"
-          >
-            <span className="flowbtn-arrow left" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </span>
-            <span className="flowbtn-circle" aria-hidden="true" />
-            <span className="flowbtn-text">Editar Perfil</span>
-            <span className="flowbtn-arrow right" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </span>
-          </button>
-
           <button
             type="button"
             onClick={() => goDelayed("/pedidos")}

@@ -44,9 +44,16 @@ export function subscribePedidosDoCliente(
     where("clienteId", "==", clienteId),
     orderBy("criadoEm", "desc")
   );
-  return onSnapshot(q, (snap) => {
-    onChange(snap.docs.map((d) => toPedido(d.id, d.data())));
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      onChange(snap.docs.map((d) => toPedido(d.id, d.data())));
+    },
+    (error) => {
+      console.error("subscribePedidosDoCliente falhou:", error);
+      onChange([]);
+    }
+  );
 }
 
 export function subscribePedido(

@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Camera, Lock, Trash2, MapPin, Plus, Star } from "lucide-react";
+import { X, Camera, Lock, Trash2, MapPin, Plus, Star, Pencil } from "lucide-react";
 import type { User } from "firebase/auth";
 import { useToast } from "@/lib/toast";
 import { atualizarCliente } from "@/lib/clientes";
-import { maskPhone } from "@/lib/utils";
+import { uploadImage } from "@/lib/cloudinary";
+import { maskCep, maskPhone } from "@/lib/utils";
 import type { Cliente, ClienteEndereco } from "@/lib/types";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -19,17 +20,30 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
   const [telefone, setTelefone] = useState(cliente.telefone);
   const [errors, setErrors] = useState<{ nome?: string }>({});
   const [saving, setSaving] = useState(false);
-  const [hasPhoto] = useState(false);
+  const [fotoUrl, setFotoUrl] = useState(cliente.fotoUrl ?? "");
+  const [uploadingFoto, setUploadingFoto] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasPhoto = Boolean(fotoUrl);
 
+  const [editingAddrId, setEditingAddrId] = useState<string | null>(null);
   const [addrLabel, setAddrLabel] = useState("");
-  const [addrText, setAddrText] = useState("");
+  const [addrCep, setAddrCep] = useState("");
+  const [addrRua, setAddrRua] = useState("");
+  const [addrNumero, setAddrNumero] = useState("");
+  const [addrComplemento, setAddrComplemento] = useState("");
+  const [addrBairro, setAddrBairro] = useState("");
+  const [addrCidade, setAddrCidade] = useState("");
+  const [addrUf, setAddrUf] = useState("");
   const [savingAddr, setSavingAddr] = useState(false);
 
+  const addrValid =
+    addrLabel.trim() && addrCep.trim().length === 9 && addrRua.trim() && addrNumero.trim() && addrBairro.trim() && addrCidade.trim() && addrUf.trim().length === 2;
+
   const changed = useMemo(
-    () => nome !== cliente.nome || telefone !== cliente.telefone,
-    [cliente, nome, telefone]
+    () => nome !== cliente.nome || telefone !== cliente.telefone || fotoUrl !== (cliente.fotoUrl ?? ""),
+    [cliente, nome, telefone, fotoUrl]
   );
 
   const isValid = nome.trim().length >= 3;
@@ -43,7 +57,7 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
     if (!changed) return;
     setSaving(true);
     try {
-      await atualizarCliente(user.uid, { nome: nome.trim(), telefone });
+      await atualizarCliente(user.uid, { nome: nome.trim(), telefone, fotoUrl: fotoUrl || undefined });
       setSaving(false);
       flash("Perfil atualizado");
     } catch {
@@ -57,14 +71,24 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
     setConfirmDelete(false);
   };
 
-  const takePhoto = () => {
-    flash("Upload de foto de perfil ainda não disponível");
+  const openPicker = () => {
     closeSheet();
+    fileInputRef.current?.click();
   };
 
-  const pickGallery = () => {
-    flash("Upload de foto de perfil ainda não disponível");
-    closeSheet();
+  const onPhotoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFoto(true);
+    try {
+      const { url } = await uploadImage(file);
+      setFotoUrl(url);
+    } catch {
+      flash("Erro ao enviar foto. Tente novamente");
+    } finally {
+      setUploadingFoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const onDeletePhoto = () => {
@@ -72,25 +96,65 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
       setConfirmDelete(true);
       return;
     }
+    setFotoUrl("");
     closeSheet();
   };
 
-  const addAddress = async () => {
-    if (!addrLabel.trim() || !addrText.trim()) return;
+  const clearAddrForm = () => {
+    setEditingAddrId(null);
+    setAddrLabel("");
+    setAddrCep("");
+    setAddrRua("");
+    setAddrNumero("");
+    setAddrComplemento("");
+    setAddrBairro("");
+    setAddrCidade("");
+    setAddrUf("");
+  };
+
+  const startEditAddress = (e: ClienteEndereco) => {
+    setEditingAddrId(e.id);
+    setAddrLabel(e.rotulo);
+    setAddrCep(e.cep ?? "");
+    setAddrRua(e.rua ?? "");
+    setAddrNumero(e.numero ?? "");
+    setAddrComplemento(e.complemento ?? "");
+    setAddrBairro(e.bairro ?? "");
+    setAddrCidade(e.cidade ?? "");
+    setAddrUf(e.uf ?? "");
+  };
+
+  const saveAddress = async () => {
+    if (!addrValid) return;
     setSavingAddr(true);
-    const novo: ClienteEndereco = {
-      id: `end-${Date.now()}`,
+    const rua = addrRua.trim();
+    const numero = addrNumero.trim();
+    const complemento = addrComplemento.trim();
+    const bairro = addrBairro.trim();
+    const cidade = addrCidade.trim();
+    const uf = addrUf.trim().toUpperCase();
+    const cep = addrCep.trim();
+    const texto = `${rua}, ${numero}${complemento ? ` - ${complemento}` : ""} - ${bairro}, ${cidade}/${uf} - CEP ${cep}`;
+    const dados = {
       rotulo: addrLabel.trim(),
-      texto: addrText.trim(),
-      principal: cliente.enderecos.length === 0,
+      texto,
+      cep,
+      rua,
+      numero,
+      complemento,
+      bairro,
+      cidade,
+      uf,
     };
     try {
-      await atualizarCliente(user.uid, { enderecos: [...cliente.enderecos, novo] });
-      setAddrLabel("");
-      setAddrText("");
-      flash("Endereço adicionado");
+      const enderecos = editingAddrId
+        ? cliente.enderecos.map((e) => (e.id === editingAddrId ? { ...e, ...dados } : e))
+        : [...cliente.enderecos, { id: `end-${Date.now()}`, principal: cliente.enderecos.length === 0, ...dados }];
+      await atualizarCliente(user.uid, { enderecos });
+      clearAddrForm();
+      flash(editingAddrId ? "Endereço atualizado" : "Endereço adicionado");
     } catch {
-      flash("Erro ao adicionar endereço");
+      flash(editingAddrId ? "Erro ao atualizar endereço" : "Erro ao adicionar endereço");
     } finally {
       setSavingAddr(false);
     }
@@ -103,6 +167,7 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
 
   const removeAddress = async (id: string) => {
     const enderecos = cliente.enderecos.filter((e) => e.id !== id);
+    if (editingAddrId === id) clearAddrForm();
     await atualizarCliente(user.uid, { enderecos });
   };
 
@@ -141,13 +206,21 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
         </div>
 
         {/* avatar */}
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={onPhotoFile} className="hidden" />
         <div className="flex flex-col items-center pt-7">
           <div className="relative">
             <div
-              className="w-[120px] h-[120px] rounded-full overflow-hidden bg-[#F1F3F1] box-content"
+              className="w-[120px] h-[120px] rounded-full overflow-hidden bg-[#F1F3F1] box-content flex items-center justify-center"
               style={{ border: "3px solid #00B20B" }}
             >
-              <ImagePlaceholder shape="circle" label={hasPhoto ? "Foto de perfil" : "Sem foto"} iconSize={28} />
+              {uploadingFoto ? (
+                <span className="w-7 h-7 rounded-full border-[3px] border-[#E5E5E5] border-t-ne-green" style={{ animation: "ne-spin .8s linear infinite" }} />
+              ) : hasPhoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={fotoUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
+              ) : (
+                <ImagePlaceholder shape="circle" label="Sem foto" iconSize={28} />
+              )}
             </div>
             <button
               type="button"
@@ -231,7 +304,14 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
           </div>
           <div className="flex flex-col gap-2.5">
             {cliente.enderecos.map((e) => (
-              <div key={e.id} className="p-3.5 bg-white rounded-xl border border-[#EDEFED] flex items-start gap-3">
+              <div
+                key={e.id}
+                className="p-3.5 rounded-xl border flex items-start gap-3"
+                style={{
+                  background: editingAddrId === e.id ? "#F0FBF0" : "#FFFFFF",
+                  borderColor: editingAddrId === e.id ? "#00B20B" : "#EDEFED",
+                }}
+              >
                 <MapPin size={16} color="#00B20B" strokeWidth={2.2} className="flex-none mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -251,6 +331,14 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
                     )}
                     <button
                       type="button"
+                      onClick={() => (editingAddrId === e.id ? clearAddrForm() : startEditAddress(e))}
+                      className="flex items-center gap-1 border-0 bg-transparent p-0 cursor-pointer text-[11.5px] font-semibold text-ne-green hover:underline"
+                    >
+                      <Pencil size={11} />
+                      {editingAddrId === e.id ? "Cancelar edição" : "Editar"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => removeAddress(e.id)}
                       className="border-0 bg-transparent p-0 cursor-pointer text-[11.5px] font-semibold text-[#E63946] hover:underline"
                     >
@@ -262,6 +350,9 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
             ))}
 
             <div className="p-3.5 bg-white rounded-xl border border-dashed border-[#E5E5E5] flex flex-col gap-2.5">
+              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5, color: "#012418" }}>
+                {editingAddrId ? "Editando endereço" : "Novo endereço"}
+              </div>
               <input
                 type="text"
                 value={addrLabel}
@@ -270,24 +361,90 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
                 className="h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
                 style={{ fontFamily: "var(--font-manrope)" }}
               />
-              <textarea
-                value={addrText}
-                onChange={(e) => setAddrText(e.target.value)}
-                placeholder="Endereço completo (rua, número, bairro, cidade, CEP)"
-                rows={2}
-                className="box-border px-3 py-2 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px] resize-none"
+              <div className="flex gap-2.5">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={addrCep}
+                  onChange={(e) => setAddrCep(maskCep(e.target.value))}
+                  placeholder="CEP"
+                  className="w-[110px] h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                />
+                <input
+                  type="text"
+                  value={addrUf}
+                  onChange={(e) => setAddrUf(e.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase())}
+                  placeholder="UF"
+                  className="w-[64px] h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                />
+              </div>
+              <input
+                type="text"
+                value={addrCidade}
+                onChange={(e) => setAddrCidade(e.target.value)}
+                placeholder="Cidade"
+                className="h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
                 style={{ fontFamily: "var(--font-manrope)" }}
               />
-              <button
-                type="button"
-                onClick={addAddress}
-                disabled={!addrLabel.trim() || !addrText.trim() || savingAddr}
-                className="h-9 rounded-lg border-0 bg-ne-green text-white cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5 }}
-              >
-                <Plus size={14} />
-                Adicionar Endereço
-              </button>
+              <input
+                type="text"
+                value={addrBairro}
+                onChange={(e) => setAddrBairro(e.target.value)}
+                placeholder="Bairro"
+                className="h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              />
+              <div className="flex gap-2.5">
+                <input
+                  type="text"
+                  value={addrRua}
+                  onChange={(e) => setAddrRua(e.target.value)}
+                  placeholder="Rua / Avenida"
+                  className="flex-1 min-w-0 h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={addrNumero}
+                  onChange={(e) => setAddrNumero(e.target.value)}
+                  placeholder="Número"
+                  className="w-[84px] h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
+                  style={{ fontFamily: "var(--font-manrope)" }}
+                />
+              </div>
+              <input
+                type="text"
+                value={addrComplemento}
+                onChange={(e) => setAddrComplemento(e.target.value)}
+                placeholder="Complemento (opcional)"
+                className="h-10 box-border px-3 border border-[#E5E5E5] rounded-lg bg-[#F7F7F7] text-[13px]"
+                style={{ fontFamily: "var(--font-manrope)" }}
+              />
+              <div className="flex items-center gap-2.5">
+                {editingAddrId && (
+                  <button
+                    type="button"
+                    onClick={clearAddrForm}
+                    className="h-9 px-4 rounded-lg border border-[#E5E5E5] bg-white cursor-pointer"
+                    style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5, color: "#012418" }}
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={saveAddress}
+                  disabled={!addrValid || savingAddr}
+                  className="flex-1 h-9 rounded-lg border-0 bg-ne-green text-white cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12.5 }}
+                >
+                  {editingAddrId ? <Pencil size={14} /> : <Plus size={14} />}
+                  {editingAddrId ? "Salvar Alterações" : "Adicionar Endereço"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -347,7 +504,7 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
             <div className="flex flex-col gap-2">
               <button
                 type="button"
-                onClick={takePhoto}
+                onClick={openPicker}
                 className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#F4F6F4] cursor-pointer hover:bg-[#E9EDE9] transition-colors text-left"
               >
                 <Camera size={18} color="#012418" strokeWidth={2} />
@@ -355,10 +512,12 @@ export function EditarPerfilForm({ user, cliente }: { user: User; cliente: Clien
               </button>
               <button
                 type="button"
-                onClick={pickGallery}
+                onClick={openPicker}
                 className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#F4F6F4] cursor-pointer hover:bg-[#E9EDE9] transition-colors text-left"
               >
-                <ImagePlaceholder className="w-[18px] h-[18px] flex-none" iconSize={14} />
+                <div className="w-[18px] h-[18px] flex-none">
+                  <ImagePlaceholder iconSize={14} />
+                </div>
                 <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#012418" }}>Escolher da Galeria</span>
               </button>
               {hasPhoto && (
