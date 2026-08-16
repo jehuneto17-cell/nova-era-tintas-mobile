@@ -2,9 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, Check, User, Package, Settings, FileText, ChevronRight } from "lucide-react";
+import {
+  Menu,
+  Check,
+  User,
+  Package,
+  Settings,
+  FileText,
+  ChevronRight,
+  Share2,
+  Mail,
+  MessageCircle,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
+import { useBranding } from "@/lib/hooks";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -13,15 +25,50 @@ const MENU = [
   { id: "perfil", icon: User, label: "Meu Perfil" },
   { id: "pedidos", icon: Package, label: "Meus Pedidos" },
   { id: "config", icon: Settings, label: "Configurações" },
+  { id: "redes", icon: Share2, label: "Nossas redes sociais" },
   { id: "termos", icon: FileText, label: "Termos & Privacidade" },
 ] as const;
+
+const INSTAGRAM_URL = "https://www.instagram.com/novaeratintas";
+const FACEBOOK_URL = "https://www.facebook.com/nova.era.336717";
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function whatsappUrl(whatsapp: string) {
+  const digits = onlyDigits(whatsapp);
+  const withCountry = digits.startsWith("55") ? digits : `55${digits}`;
+  return `https://wa.me/${withCountry}`;
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#012418" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="#012418">
+      <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z" />
+    </svg>
+  );
+}
 
 export default function PerfilPage() {
   const router = useRouter();
   const { flash } = useToast();
   const { user, cliente, loading: authLoading, logout } = useAuth();
+  const branding = useBranding();
   const [showLogout, setShowLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showRedes, setShowRedes] = useState(false);
+  const [showTermos, setShowTermos] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/entrada");
@@ -40,7 +87,14 @@ export default function PerfilPage() {
       router.push("/perfil/editar");
       return;
     }
-    flash("Termos & Privacidade em breve");
+    if (id === "redes") {
+      setShowRedes(true);
+      return;
+    }
+    if (id === "termos") {
+      setShowTermos(true);
+      return;
+    }
   };
 
   const goDelayed = (path: string) => {
@@ -196,6 +250,176 @@ export default function PerfilPage() {
           </a>
         </div>
       </div>
+
+      {/* redes sociais sheet */}
+      {showRedes && (
+        <>
+          <div
+            className="absolute inset-0 z-40 bg-black/45"
+            style={{ animation: "ne-veil .2s ease-out" }}
+            onClick={() => setShowRedes(false)}
+          />
+          <div
+            className="absolute left-0 right-0 bottom-0 z-41 rounded-t-3xl bg-white px-4 pt-3 pb-8 box-border"
+            style={{ animation: "ne-sheet .28s cubic-bezier(.22,1,.36,1)" }}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-[#E5E5E5]" />
+            <div className="mb-4 text-center" style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, color: "#012418" }}>
+              Nossas redes sociais
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              {branding?.email && (
+                <a
+                  href={`mailto:${branding.email}`}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#F4F6F4] hover:bg-[#E9EDE9] transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white flex-none flex items-center justify-center">
+                    <Mail size={17} color="#012418" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11.5px] font-medium text-[#999999]">E-mail</div>
+                    <div className="truncate" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>
+                      {branding.email}
+                    </div>
+                  </div>
+                </a>
+              )}
+
+              {branding?.whatsapp && (
+                <a
+                  href={whatsappUrl(branding.whatsapp)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#F4F6F4] hover:bg-[#E9EDE9] transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white flex-none flex items-center justify-center">
+                    <MessageCircle size={17} color="#012418" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11.5px] font-medium text-[#999999]">WhatsApp</div>
+                    <div className="truncate" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>
+                      {branding.whatsapp}
+                    </div>
+                  </div>
+                </a>
+              )}
+
+              {branding?.redes_sociais?.instagram && (
+                <a
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#F4F6F4] hover:bg-[#E9EDE9] transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white flex-none flex items-center justify-center">
+                    <InstagramIcon />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11.5px] font-medium text-[#999999]">Instagram</div>
+                    <div className="truncate" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>
+                      {branding.redes_sociais.instagram}
+                    </div>
+                  </div>
+                </a>
+              )}
+
+              {branding?.redes_sociais?.facebook && (
+                <a
+                  href={FACEBOOK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#F4F6F4] hover:bg-[#E9EDE9] transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white flex-none flex items-center justify-center">
+                    <FacebookIcon />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11.5px] font-medium text-[#999999]">Facebook</div>
+                    <div className="truncate" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>
+                      {branding.redes_sociais.facebook}
+                    </div>
+                  </div>
+                </a>
+              )}
+
+              {!branding?.email && !branding?.whatsapp && !branding?.redes_sociais?.instagram && !branding?.redes_sociais?.facebook && (
+                <div className="px-4 py-6 text-center text-[13px] font-medium text-[#999999]">
+                  {branding ? "Nenhuma informação de contato disponível." : "Carregando..."}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowRedes(false)}
+              className="mt-5 w-full h-11 rounded-xl border border-[#E5E5E5] bg-white cursor-pointer hover:bg-[#F5F5F5] transition-colors"
+              style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#012418" }}
+            >
+              Fechar
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* termos & privacidade sheet */}
+      {showTermos && (
+        <>
+          <div
+            className="absolute inset-0 z-40 bg-black/45"
+            style={{ animation: "ne-veil .2s ease-out" }}
+            onClick={() => setShowTermos(false)}
+          />
+          <div
+            className="absolute left-0 right-0 bottom-0 z-41 rounded-t-3xl bg-white px-4 pt-3 pb-8 box-border"
+            style={{ animation: "ne-sheet .28s cubic-bezier(.22,1,.36,1)" }}
+          >
+            <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-[#E5E5E5]" />
+            <div className="mb-4 text-center" style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, color: "#012418" }}>
+              Termos &amp; Privacidade
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => router.push("/termos")}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#F4F6F4] cursor-pointer hover:bg-[#E9EDE9] transition-colors text-left"
+              >
+                <div className="w-9 h-9 rounded-xl bg-white flex-none flex items-center justify-center">
+                  <FileText size={17} color="#012418" strokeWidth={2} />
+                </div>
+                <span className="flex-1 min-w-0" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>
+                  Termos de Serviço
+                </span>
+                <ChevronRight size={17} color="#999999" strokeWidth={2.2} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push("/privacidade")}
+                className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#F4F6F4] cursor-pointer hover:bg-[#E9EDE9] transition-colors text-left"
+              >
+                <div className="w-9 h-9 rounded-xl bg-white flex-none flex items-center justify-center">
+                  <FileText size={17} color="#012418" strokeWidth={2} />
+                </div>
+                <span className="flex-1 min-w-0" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>
+                  Política de Privacidade
+                </span>
+                <ChevronRight size={17} color="#999999" strokeWidth={2.2} />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowTermos(false)}
+              className="mt-5 w-full h-11 rounded-xl border border-[#E5E5E5] bg-white cursor-pointer hover:bg-[#F5F5F5] transition-colors"
+              style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#012418" }}
+            >
+              Fechar
+            </button>
+          </div>
+        </>
+      )}
 
       {/* logout modal */}
       {showLogout && (
