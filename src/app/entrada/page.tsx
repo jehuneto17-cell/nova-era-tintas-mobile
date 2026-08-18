@@ -1,12 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/lib/toast";
 import { Toast } from "@/components/Toast";
+import { useAuth } from "@/lib/auth";
 
 export default function EntradaPage() {
   const router = useRouter();
   const { flash } = useToast();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) router.replace("/");
+  }, [loading, user, router]);
+
+  if (loading || user) return null;
 
   return (
     <div className="absolute inset-0 bg-gradient-to-b from-white to-[#F8F8F8] flex flex-col overflow-hidden">
