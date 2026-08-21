@@ -18,11 +18,12 @@ export function toCartLine(produto: Produto): Omit<CartLine, "qty"> | null {
   const padrao = variacaoPadrao(produto);
   if (!padrao) return null;
   const [chave, variacao] = padrao;
+  const specsCor = produto.todasCores ? "Qualquer cor" : `Cor: ${variacao.cor}`;
   return {
     produtoId: produto.id,
     variacao: chave,
     title: produto.nome,
-    specs: `Cor: ${variacao.cor} | Volume: ${variacao.volume}`,
+    specs: `${specsCor} | Volume: ${variacao.volume}`,
     price: variacao.preco,
     oldPrice: null,
     shot: produto.nome.split(" ")[0],

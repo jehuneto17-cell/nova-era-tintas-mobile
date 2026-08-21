@@ -7,6 +7,8 @@ export interface ProdutoVariacao {
 }
 
 export interface ProdutoCor {
+  corId?: string;
+  codigo?: string;
   nome: string;
   hex: string;
 }
@@ -31,6 +33,7 @@ export interface Produto {
   descontoPct: number;
   ativo: boolean;
   cores: ProdutoCor[];
+  todasCores?: boolean;
   volumes: string[];
   variacoes: Record<string, ProdutoVariacao>;
   specs: ProdutoSpec[];

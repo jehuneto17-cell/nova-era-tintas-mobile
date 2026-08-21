@@ -9,6 +9,7 @@ import { toCartLine } from "@/lib/mappers";
 import { brl, useStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
 import { categoryIcon } from "@/lib/icons";
+import { stripHtml } from "@/lib/utils";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -421,7 +422,7 @@ export default function HomePage() {
                     <button onClick={() => router.push(`/produto/${p.id}`)} className="text-left">
                       <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.nome}</div>
                     </button>
-                    <div className="text-[11px] font-medium leading-snug text-[#999999] line-clamp-2">{p.descricao}</div>
+                    <div className="text-[11px] font-medium leading-snug text-[#999999] line-clamp-2">{stripHtml(p.descricao)}</div>
                     <div className="mt-auto flex items-end justify-between gap-2 pt-1">
                       <div>
                         <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em", color: "#00B20B" }}>{brl(preco)}</div>

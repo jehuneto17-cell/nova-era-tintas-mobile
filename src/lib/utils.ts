@@ -15,3 +15,8 @@ export function maskCep(raw: string) {
   if (digits.length <= 5) return digits;
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 }
+
+/** Remove tags HTML de uma string, retornando apenas o texto. */
+export function stripHtml(html: string) {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}

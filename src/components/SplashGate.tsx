@@ -39,12 +39,20 @@ export function SplashGate({ children }: { children: React.ReactNode }) {
   // por ref (não pelo próprio sessionStorage) porque o Strict Mode do modo dev
   // roda este efeito duas vezes; sem a ref, a 2ª chamada já veria o
   // sessionStorage marcado pela 1ª e nunca disparia a splash.
+  //
+  // O setState aqui é intencional e não pode migrar para fora do efeito: o
+  // componente é renderizado no servidor (sem sessionStorage), então a decisão
+  // só pode ser tomada no client, após montar. Um useState(() => ...) pareceria
+  // mais direto, mas o React reaproveita o valor computado no server durante a
+  // hidratação (não roda o inicializador de novo no client), então a splash
+  // nunca apareceria — foi testado e revertido por esse motivo.
   useEffect(() => {
     if (decided.current) return;
     decided.current = true;
     if (sessionStorage.getItem(SEEN_KEY)) return;
     sessionStorage.setItem(SEEN_KEY, "1");
     startedAt.current = Date.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- decisão só é possível no client, após montar (ver comentário acima)
     setShowSplash(true);
   }, []);
 
