@@ -63,6 +63,47 @@ body {
   display: none;
 }
 
+.ne-descricao p {
+  margin: 0 0 8px;
+}
+.ne-descricao p:last-child {
+  margin-bottom: 0;
+}
+.ne-descricao b,
+.ne-descricao strong {
+  font-weight: 700;
+  color: #012418;
+}
+.ne-descricao i,
+.ne-descricao em {
+  font-style: italic;
+}
+.ne-descricao u {
+  text-decoration: underline;
+}
+.ne-descricao h1,
+.ne-descricao h2,
+.ne-descricao h3 {
+  font-family: var(--font-archivo);
+  font-weight: 700;
+  font-size: 15px;
+  color: #000;
+  margin: 12px 0 6px;
+}
+.ne-descricao h1:first-child,
+.ne-descricao h2:first-child,
+.ne-descricao h3:first-child {
+  margin-top: 0;
+}
+.ne-descricao ul,
+.ne-descricao ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+.ne-descricao li {
+  margin-bottom: 2px;
+}
+
 .ne-in:focus {
   outline: none;
   border-color: var(--ne-green) !important;

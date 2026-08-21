@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChevronLeft, Share2, Heart, Star, Minus, Plus } from "lucide-react";
-import { getProduto, capaUrl } from "@/lib/produtos";
+import { ChevronLeft, Share2, Heart, Star, Minus, Plus, Truck } from "lucide-react";
+import { getProduto, getProdutosPorCategoria, capaUrl, precoMinimo, estoqueTotal } from "@/lib/produtos";
 import { variacaoPadrao } from "@/lib/mappers";
 import { brl, useStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
-import { useFrete } from "@/lib/hooks";
+import { useCategoriasAtivas } from "@/lib/hooks";
+import { categoryIcon } from "@/lib/icons";
 import type { Produto } from "@/lib/types";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
@@ -22,9 +23,10 @@ export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const { toggleFavorite, favorites, addItem } = useStore();
   const { flash } = useToast();
-  const frete = useFrete();
+  const { categorias } = useCategoriasAtivas();
 
   const [result, setResult] = useState<{ id: string; produto: Produto | null } | null>(null);
+  const [relacionados, setRelacionados] = useState<Produto[]>([]);
 
   const [cor, setCor] = useState<string | null>(null);
   const [volume, setVolume] = useState<string | null>(null);
@@ -59,7 +61,22 @@ export default function ProductDetailPage() {
   const notFound = !loading && result?.produto === null;
   const produto = !loading ? result?.produto ?? null : null;
 
+  useEffect(() => {
+    if (!produto) return;
+    let active = true;
+    const produtoId = produto.id;
+    getProdutosPorCategoria(produto.categoriaId).then((lista) => {
+      if (!active) return;
+      setRelacionados(lista.filter((p) => p.id !== produtoId && p.ativo));
+    });
+    return () => {
+      active = false;
+    };
+  }, [produto]);
+
   const fav = produto ? favorites.includes(produto.id) : false;
+  const categoria = produto ? categorias.find((c) => c.id === produto.categoriaId) : undefined;
+  const CategoriaIcon = categoryIcon(categoria?.icone ?? "package");
 
   const variacao = useMemo(() => {
     if (!produto || !cor || !volume) return null;
@@ -181,21 +198,21 @@ export default function ProductDetailPage() {
           <button
             type="button"
             onClick={() => toggleFavorite(produto.id)}
-            className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/90 backdrop-blur cursor-pointer flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,.14)] active:scale-90 transition-transform"
+            className="absolute top-3.5 right-3.5 w-10 h-10 rounded-full bg-white/90 backdrop-blur cursor-pointer flex items-center justify-center shadow-[0_3px_12px_rgba(1,36,24,.14)] hover:scale-105 active:scale-90 transition-transform"
           >
-            <Heart size={20} color={fav ? "#00B20B" : "#012418"} fill={fav ? "#00B20B" : "none"} strokeWidth={2} />
+            <Heart size={21} color={fav ? "#E23B3B" : "#999999"} fill={fav ? "#E23B3B" : "none"} strokeWidth={2} />
           </button>
 
           {produto.fotos.length > 1 && (
-            <div className="absolute left-0 right-0 bottom-3 flex items-center justify-center gap-1.5">
+            <div className="absolute left-0 right-0 bottom-3.5 flex items-center justify-center gap-1.5">
               {produto.fotos.map((f, i) => (
                 <div
                   key={f.id}
-                  className="rounded-full transition-all"
+                  className="rounded-[3px] transition-all"
                   style={{
-                    width: slide === i ? 16 : 6,
+                    width: slide === i ? 20 : 6,
                     height: 6,
-                    background: slide === i ? "#00B20B" : "rgba(1,36,24,.2)",
+                    background: slide === i ? "#00B20B" : "rgba(255,255,255,.75)",
                   }}
                 />
               ))}
@@ -203,53 +220,69 @@ export default function ProductDetailPage() {
           )}
         </div>
 
-        {/* title + rating */}
-        <div className="px-5 pt-5">
-          <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 24, lineHeight: 1.15, letterSpacing: "-0.02em", color: "#000" }}>
-            {produto.nome}
-          </div>
-          <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-            <span
-              className="px-2.5 py-1 rounded-full bg-[#F1F3F1] text-[#012418] capitalize"
-              style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 11.5 }}
-            >
-              {produto.categoria}
-            </span>
-            <span className="flex items-center gap-1 text-[13px] font-semibold text-[#012418]">
-              <Star size={14} fill="#FFB703" color="#FFB703" />
-              4.8 <span className="text-[#999999] font-medium">(229 avaliações)</span>
-            </span>
-          </div>
-
-          {/* price row */}
-          <div className="mt-4 flex items-end gap-2.5 flex-wrap">
-            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 26, letterSpacing: "-0.02em", color: "#00B20B" }}>
-              {brl(unitPrice)}
+        {/* content */}
+        <div className="px-4 pt-4 flex flex-col gap-4">
+          {/* title + rating */}
+          <div className="flex flex-col gap-2">
+            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 24, lineHeight: 1.15, letterSpacing: "-0.03em", color: "#000" }}>
+              {produto.nome}
             </div>
-            {oldPrice !== null && (
-              <>
-                <div className="text-[14px] font-semibold text-[#999999] line-through mb-0.5">{brl(oldPrice)}</div>
-                <div
-                  className="px-2 py-0.5 rounded-md bg-[#FFE5E5] text-[#E63946] mb-0.5"
-                  style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 11.5 }}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-5 h-5 rounded-md flex-none flex items-center justify-center"
+                  style={{ background: categoria?.fundo ?? "#00B20B" }}
                 >
-                  -{produto.descontoPct}%
-                </div>
-              </>
-            )}
+                  <CategoriaIcon size={12} color="#FFFFFF" strokeWidth={2.4} />
+                </span>
+                <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 13, color: "#012418" }}>{produto.categoria}</span>
+              </div>
+              <div className="w-px h-3.5 bg-[#E5E5E5]" />
+              <div className="flex items-center gap-1 text-[13px] font-medium text-[#999999]">
+                <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, color: "#000" }}>4.8</span>
+                <Star size={13} fill="#F5A524" color="#F5A524" />
+                <span>(229 avaliações)</span>
+              </div>
+            </div>
           </div>
 
-          {frete && (
-            <div className="mt-2 text-[12.5px] font-medium text-[#0088B7]">
-              Frete grátis acima de {brl(frete.gratis_acima)}
+          {/* price */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline gap-2.5">
+              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 28, letterSpacing: "-0.03em", color: "#00B20B" }}>
+                {brl(unitPrice)}
+              </div>
+              {oldPrice !== null && (
+                <>
+                  <div className="text-[14px] font-medium text-[#999999] line-through">{brl(oldPrice)}</div>
+                  <div
+                    className="px-2 py-[3px] rounded-[7px] bg-[#E7F7E8] text-ne-green"
+                    style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 11 }}
+                  >
+                    -{produto.descontoPct}%
+                  </div>
+                </>
+              )}
             </div>
-          )}
+
+            <div className="flex items-center gap-1.5 text-[12.5px] font-medium text-[#999999]">
+              <Truck size={15} color="#0088B7" strokeWidth={2} />
+              <span>
+                Entrega em 30 min · <span className="font-bold text-ne-green">frete grátis</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="h-px bg-[#EDEFED]" />
 
           {/* color picker */}
           {produto.cores.length > 0 && (
-            <div className="mt-6">
-              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#012418" }}>Cor</div>
-              <div className="mt-2.5 flex items-center gap-3 flex-wrap">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-baseline gap-2">
+                <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Cor</span>
+                {cor && <span className="text-[13px] font-medium text-[#999999]">{cor}</span>}
+              </div>
+              <div className="flex gap-3">
                 {produto.cores.map((c) => {
                   const disponivel = corDisponivel(c.nome);
                   return (
@@ -259,11 +292,12 @@ export default function ProductDetailPage() {
                       onClick={() => disponivel && setCor(c.nome)}
                       title={c.nome}
                       disabled={!disponivel}
-                      className="w-9 h-9 rounded-full flex-none cursor-pointer flex items-center justify-center transition-transform active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="w-10 h-10 rounded-full flex-none cursor-pointer p-0 transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-30"
                       style={{
                         background: c.hex,
-                        border: c.hex.toLowerCase() === "#ffffff" ? "1.5px solid #E5E5E5" : "1.5px solid transparent",
-                        boxShadow: cor === c.nome ? "0 0 0 2.5px #FFFFFF, 0 0 0 4.5px #00B20B" : "0 1px 4px rgba(0,0,0,.14)",
+                        border: cor === c.nome ? `3px solid #00B20B` : "1.5px solid #E5E5E5",
+                        boxShadow: cor === c.nome ? "0 0 0 2px #FFFFFF inset" : "none",
+                        transform: cor === c.nome ? "scale(1.06)" : "scale(1)",
                       }}
                     />
                   );
@@ -274,9 +308,9 @@ export default function ProductDetailPage() {
 
           {/* size picker */}
           {produto.volumes.length > 0 && (
-            <div className="mt-5">
-              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#012418" }}>Volume</div>
-              <div className="mt-2.5 flex items-center gap-2.5 flex-wrap">
+            <div className="flex flex-col gap-2.5">
+              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Volume</div>
+              <div className="flex gap-2.5">
                 {produto.volumes.map((v) => {
                   const active = v === volume;
                   const disponivel = volumeDisponivel(v);
@@ -286,17 +320,14 @@ export default function ProductDetailPage() {
                       type="button"
                       onClick={() => disponivel && setVolume(v)}
                       disabled={!disponivel}
-                      className="flex-1 py-2.5 rounded-xl cursor-pointer text-center transition-colors disabled:cursor-not-allowed disabled:opacity-30"
+                      className="h-10 px-4 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
                       style={{
-                        border: `1.5px solid ${active ? "#00B20B" : "#E6E9E6"}`,
-                        background: active ? "#00B20B" : "#FFFFFF",
-                        color: active ? "#FFFFFF" : "#012418",
-                        fontFamily: "var(--font-archivo)",
-                        fontWeight: 700,
-                        fontSize: 13.5,
+                        border: `1.5px solid ${active ? "#012418" : "#E5E5E5"}`,
+                        background: active ? "#012418" : "#F5F5F5",
+                        color: active ? "#FFFFFF" : "#999999",
                       }}
                     >
-                      {v}
+                      <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5 }}>{v}</span>
                     </button>
                   );
                 })}
@@ -305,28 +336,35 @@ export default function ProductDetailPage() {
           )}
 
           {!emEstoque && (
-            <div className="mt-4 py-2.5 px-3.5 rounded-md bg-[#FFE5E5] text-[#E63946] text-[12.5px] font-semibold">
+            <div className="py-2.5 px-3.5 rounded-md bg-[#FFE5E5] text-[#E63946] text-[12.5px] font-semibold">
               Essa combinação está sem estoque no momento
             </div>
           )}
 
           {/* quantity stepper */}
-          <div className="mt-5">
-            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#012418" }}>Quantidade</div>
-            <div className="mt-2.5 inline-flex items-center gap-4 border border-[#E6E9E6] rounded-xl px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Quantidade</div>
+              {variacao && (
+                <div className="text-[11.5px] font-medium text-[#999999]">{variacao.estoque} em estoque</div>
+              )}
+            </div>
+            <div className="flex items-center">
               <button
                 type="button"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-8 h-8 rounded-lg bg-[#F4F6F4] cursor-pointer flex items-center justify-center hover:bg-[#E6E9E6] transition-colors disabled:opacity-40"
+                className="w-10 h-10 rounded-l-xl border border-r-0 border-[#E5E5E5] bg-white text-[#012418] text-[19px] leading-none cursor-pointer flex items-center justify-center hover:bg-[#F5F5F5] transition-colors disabled:opacity-40"
                 disabled={qty <= 1}
               >
                 <Minus size={15} color="#012418" strokeWidth={2.4} />
               </button>
-              <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15, minWidth: 20, textAlign: "center" }}>{qty}</span>
+              <div className="w-12 h-10 border border-[#E5E5E5] bg-white flex items-center justify-center" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 15, color: "#000" }}>
+                {qty}
+              </div>
               <button
                 type="button"
                 onClick={() => setQty((q) => Math.min(99, variacao?.estoque ?? 99, q + 1))}
-                className="w-8 h-8 rounded-lg bg-[#F4F6F4] cursor-pointer flex items-center justify-center hover:bg-[#E6E9E6] transition-colors disabled:opacity-40"
+                className="w-10 h-10 rounded-r-xl border border-l-0 border-[#E5E5E5] bg-white text-[#012418] text-[19px] leading-none cursor-pointer flex items-center justify-center hover:bg-[#F5F5F5] transition-colors disabled:opacity-40"
                 disabled={qty >= Math.min(99, variacao?.estoque ?? 99)}
               >
                 <Plus size={15} color="#012418" strokeWidth={2.4} />
@@ -334,46 +372,101 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          <div className="h-px bg-[#EDEFED]" />
+
           {/* description */}
-          <div className="mt-6">
-            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 15, color: "#012418" }}>Descrição</div>
-            <div className="mt-2 text-[13.5px] leading-relaxed font-medium text-[#666]">{produto.descricao}</div>
+          <div className="flex flex-col gap-2">
+            <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 16, color: "#000" }}>Descrição</div>
+            <div
+              className="ne-descricao text-[14px] leading-relaxed text-[#5C6A62]"
+              dangerouslySetInnerHTML={{ __html: produto.descricao }}
+            />
           </div>
 
           {/* specs table */}
           {produto.specs.length > 0 && (
-            <div className="mt-5 mb-2 rounded-xl border border-[#EDEFED] overflow-hidden">
-              {produto.specs.map((s, i) => (
-                <div
-                  key={s.nome}
-                  className="flex items-center justify-between px-4 py-3"
-                  style={{ background: i % 2 === 0 ? "#FAFBFA" : "#FFFFFF", borderTop: i === 0 ? "none" : "1px solid #EDEFED" }}
-                >
-                  <span className="text-[12.5px] font-semibold text-[#999999]">{s.nome}</span>
-                  <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13, color: "#012418" }}>{s.valor}</span>
-                </div>
-              ))}
+            <div className="flex flex-col gap-2 mb-2">
+              <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 16, color: "#000" }}>Especificações</div>
+              <div className="rounded-[14px] border border-[#EDEFED] overflow-hidden">
+                {produto.specs.map((s, i) => (
+                  <div
+                    key={s.nome}
+                    className="flex items-center justify-between px-3.5 py-3"
+                    style={{ borderTop: i === 0 ? "none" : "1px solid #F2F4F2" }}
+                  >
+                    <span className="text-[13.5px] text-[#999999]">{s.nome}</span>
+                    <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#000" }}>{s.valor}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
+
+        {/* related products */}
+        {relacionados.length > 0 && (
+          <div className="mt-6 flex flex-col gap-3">
+            <div className="px-4" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 16, color: "#000" }}>
+              Você também pode gostar
+            </div>
+            <div className="ne-hs px-4 pb-1">
+              <div className="flex gap-3 w-max">
+                {relacionados.map((p) => {
+                  const preco = precoMinimo(p);
+                  const emEstoqueRel = estoqueTotal(p) > 0;
+                  const foto = capaUrl(p);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => router.push(`/produto/${p.id}`)}
+                      className="w-[140px] flex-none text-left cursor-pointer flex flex-col gap-2 p-2.5 bg-white rounded-xl border border-[#EDEFED] shadow-[0_2px_10px_rgba(1,36,24,.05)] hover:border-ne-green transition-colors"
+                    >
+                      <div className="relative w-full aspect-square rounded-[10px] overflow-hidden bg-[#F1F3F1]">
+                        {foto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImagePlaceholder label={p.nome} />
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <div
+                          className="line-clamp-2"
+                          style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13, lineHeight: 1.25, color: "#000" }}
+                        >
+                          {p.nome}
+                        </div>
+                        <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14.5, letterSpacing: "-0.02em", color: "#00B20B" }}>
+                          {brl(preco)}
+                        </div>
+                        {!emEstoqueRel && <div className="text-[10px] font-semibold text-[#E63946]">Sem estoque</div>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* sticky action bar */}
-      <div className="absolute left-0 right-0 z-31 bottom-[72px] box-border px-4 py-3 bg-white border-t border-[#EDEFED] flex items-center gap-3">
+      <div className="absolute left-0 right-0 z-31 bottom-[72px] box-border px-4 py-3 bg-white border-t border-[#EDEFED] flex items-center gap-3 shadow-[0_-6px_20px_rgba(1,36,24,.05)]">
         <button
           type="button"
           onClick={() => toggleFavorite(produto.id)}
-          className="flex-none w-[52px] h-[52px] rounded-2xl border cursor-pointer flex items-center justify-center transition-colors active:scale-95"
-          style={{ borderColor: fav ? "#00B20B" : "#E5E5E5", background: fav ? "#EAF8EB" : "#FFFFFF" }}
+          className="flex-none w-14 h-14 rounded-xl border-2 cursor-pointer flex items-center justify-center hover:border-ne-green transition-colors"
+          style={{ borderColor: fav ? "#E23B3B" : "#E5E5E5" }}
         >
-          <Heart size={20} color={fav ? "#00B20B" : "#012418"} fill={fav ? "#00B20B" : "none"} strokeWidth={2} />
+          <Heart size={24} color={fav ? "#E23B3B" : "#999999"} fill={fav ? "#E23B3B" : "none"} strokeWidth={2} />
         </button>
         <button
           type="button"
           onClick={handleAdd}
           disabled={!emEstoque}
-          className="flex-1 h-[52px] rounded-2xl bg-ne-green text-white cursor-pointer flex items-center justify-center gap-2 hover:bg-[#00c40d] active:scale-[.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 15 }}
+          className="flex-1 h-14 rounded-3xl bg-ne-green text-white cursor-pointer flex items-center justify-center gap-2.5 hover:bg-[#009209] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 16 }}
         >
           {emEstoque ? `Adicionar · ${brl(total)}` : "Sem estoque"}
         </button>

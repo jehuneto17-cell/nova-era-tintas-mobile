@@ -21,6 +21,19 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "Nova Era Tintas",
   description: "Tintas, pincéis, rolos e acabamentos — Nova Era Tintas",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Nova Era Tintas",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
