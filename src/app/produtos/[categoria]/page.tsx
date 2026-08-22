@@ -62,7 +62,13 @@ export default function ProdutosFiltradosPage() {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [stockOnly, setStockOnly] = useState(false);
-  const [draft, setDraft] = useState({ min: "", max: "", stockOnly: false });
+  const [ambiente, setAmbiente] = useState<("interior" | "exterior")[]>([]);
+  const [draft, setDraft] = useState<{ min: string; max: string; stockOnly: boolean; ambiente: ("interior" | "exterior")[] }>({
+    min: "",
+    max: "",
+    stockOnly: false,
+    ambiente: [],
+  });
   const [priceError, setPriceError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -73,20 +79,28 @@ export default function ProdutosFiltradosPage() {
       return (
         (a === null || preco >= a) &&
         (b === null || preco <= b) &&
-        (!stockOnly || estoqueTotal(p) > 0)
+        (!stockOnly || estoqueTotal(p) > 0) &&
+        (ambiente.length === 0 || (p.ambientes ?? []).some((amb) => ambiente.includes(amb)))
       );
     });
     if (sort === "asc") list = [...list].sort((x, y) => precoMinimo(x) - precoMinimo(y));
     if (sort === "desc") list = [...list].sort((x, y) => precoMinimo(y) - precoMinimo(x));
     return list;
-  }, [produtos, min, max, stockOnly, sort]);
+  }, [produtos, min, max, stockOnly, ambiente, sort]);
 
   const shown = filtered.slice(0, page * 6);
 
   const openModal = () => {
-    setDraft({ min, max, stockOnly });
+    setDraft({ min, max, stockOnly, ambiente });
     setPriceError(null);
     setModal(true);
+  };
+
+  const toggleDraftAmbiente = (valor: "interior" | "exterior") => {
+    setDraft((d) => ({
+      ...d,
+      ambiente: d.ambiente.includes(valor) ? d.ambiente.filter((a) => a !== valor) : [...d.ambiente, valor],
+    }));
   };
 
   const apply = () => {
@@ -99,6 +113,7 @@ export default function ProdutosFiltradosPage() {
     setMin(draft.min);
     setMax(draft.max);
     setStockOnly(draft.stockOnly);
+    setAmbiente(draft.ambiente);
     setPage(1);
     setModal(false);
     flash("Filtros aplicados");
@@ -108,7 +123,8 @@ export default function ProdutosFiltradosPage() {
     setMin("");
     setMax("");
     setStockOnly(false);
-    setDraft({ min: "", max: "", stockOnly: false });
+    setAmbiente([]);
+    setDraft({ min: "", max: "", stockOnly: false, ambiente: [] });
     setPage(1);
     setPriceError(null);
     setModal(false);
@@ -294,6 +310,32 @@ export default function ProdutosFiltradosPage() {
                 </span>
                 <span className="text-sm text-[#000]">Apenas em estoque</span>
               </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Ambiente</span>
+              {([
+                { valor: "interior" as const, label: "Interior" },
+                { valor: "exterior" as const, label: "Exterior" },
+              ]).map(({ valor, label }) => (
+                <button
+                  key={valor}
+                  type="button"
+                  onClick={() => toggleDraftAmbiente(valor)}
+                  className="flex items-center gap-2.5 border-0 bg-transparent p-0 cursor-pointer text-left"
+                >
+                  <span
+                    className="flex-none w-[18px] h-[18px] rounded-[5px] box-border flex items-center justify-center transition-colors"
+                    style={{
+                      border: `1.5px solid ${draft.ambiente.includes(valor) ? "#00B20B" : "#D8DED9"}`,
+                      background: draft.ambiente.includes(valor) ? "#00B20B" : "#FFFFFF",
+                    }}
+                  >
+                    {draft.ambiente.includes(valor) && <span style={{ color: "#fff", fontSize: 11 }}>✓</span>}
+                  </span>
+                  <span className="text-sm text-[#000]">{label}</span>
+                </button>
+              ))}
             </div>
 
             <div className="flex flex-col gap-3">

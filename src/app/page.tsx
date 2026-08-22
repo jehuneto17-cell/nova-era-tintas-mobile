@@ -58,9 +58,15 @@ export default function HomePage() {
   }, []);
 
   const q = query.trim().toLowerCase();
-  const list = produtos.filter(
-    (p) => (cat === "todos" || p.categoriaId === cat) && (!q || (p.nome + " " + p.descricao).toLowerCase().includes(q))
-  );
+  const buscaInterior = q.includes("interior");
+  const buscaExterior = q.includes("exterior");
+  const list = produtos.filter((p) => {
+    if (cat !== "todos" && p.categoriaId !== cat) return false;
+    if (!q) return true;
+    if (buscaInterior && (p.ambientes ?? []).includes("interior")) return true;
+    if (buscaExterior && (p.ambientes ?? []).includes("exterior")) return true;
+    return (p.nome + " " + p.descricao).toLowerCase().includes(q);
+  });
 
   const cartByProduto = new Set(items.map((i) => i.produtoId));
 
@@ -167,7 +173,7 @@ export default function HomePage() {
       </div>
 
       {/* search history overlay */}
-      {searchOpen && (
+      {searchOpen && (recents.length > 0 || popularTerms.length > 0) && (
         <>
           <div
             onClick={() => setSearchOpen(false)}

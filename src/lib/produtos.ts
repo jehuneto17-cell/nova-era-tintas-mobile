@@ -27,6 +27,7 @@ function toProduto(id: string, data: Record<string, unknown>): Produto {
     variacoes: (data.variacoes as Produto["variacoes"]) ?? {},
     specs: (data.specs as Produto["specs"]) ?? [],
     fotos: (data.fotos as Produto["fotos"]) ?? [],
+    ambientes: (data.ambientes as Produto["ambientes"]) ?? [],
   };
 }
 

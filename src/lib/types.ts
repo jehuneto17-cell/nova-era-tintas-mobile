@@ -38,6 +38,7 @@ export interface Produto {
   variacoes: Record<string, ProdutoVariacao>;
   specs: ProdutoSpec[];
   fotos: ProdutoFoto[];
+  ambientes?: ("interior" | "exterior")[];
 }
 
 export interface Categoria {

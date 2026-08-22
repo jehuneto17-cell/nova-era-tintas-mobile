@@ -27,7 +27,11 @@ function ResultadosContent() {
     const q = query.trim().toLowerCase();
     if (!q) return produtos;
     const words = q.split(/\s+/);
+    const buscaInterior = q.includes("interior");
+    const buscaExterior = q.includes("exterior");
     return produtos.filter((p) => {
+      if (buscaInterior && (p.ambientes ?? []).includes("interior")) return true;
+      if (buscaExterior && (p.ambientes ?? []).includes("exterior")) return true;
       const n = (p.nome + " " + p.descricao).toLowerCase();
       return words.some((w) => n.includes(w.replace(/(a|o)$/, "")));
     });

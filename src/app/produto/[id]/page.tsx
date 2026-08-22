@@ -282,6 +282,21 @@ export default function ProductDetailPage() {
                 </span>
                 <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 600, fontSize: 13, color: "#012418" }}>{produto.categoria}</span>
               </div>
+              {produto.ambientes && produto.ambientes.length > 0 && (
+                <>
+                  <div className="w-px h-3.5 bg-[#E5E5E5]" />
+                  <span
+                    className="px-2 py-[3px] rounded-[7px] bg-[#E7F7E8] text-ne-green"
+                    style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 11 }}
+                  >
+                    {produto.ambientes.length === 2
+                      ? "Interior e Exterior"
+                      : produto.ambientes[0] === "interior"
+                        ? "Interior"
+                        : "Exterior"}
+                  </span>
+                </>
+              )}
               <div className="w-px h-3.5 bg-[#E5E5E5]" />
               <div className="flex items-center gap-1 text-[13px] font-medium text-[#999999]">
                 <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, color: "#000" }}>4.8</span>
