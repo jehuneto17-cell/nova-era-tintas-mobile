@@ -6,8 +6,10 @@ import type { Produto, ProdutoVariacao } from "./types";
 export function variacaoPadrao(
   produto: Produto
 ): [chave: string, variacao: ProdutoVariacao] | null {
+  // Produtos todasCores não têm estoque controlado por cor (o admin trata como "—"),
+  // então disponibilidade depende só da variação estar ativa, não de v.estoque > 0.
   const entradas = Object.entries(produto.variacoes).filter(
-    ([, v]) => v.ativo && v.estoque > 0
+    ([, v]) => v.ativo && (produto.todasCores || v.estoque > 0)
   );
   if (entradas.length === 0) return null;
   return entradas.reduce((menor, atual) => (atual[1].preco < menor[1].preco ? atual : menor));

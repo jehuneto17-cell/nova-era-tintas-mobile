@@ -48,7 +48,11 @@ export function precoMaximo(produto: Produto): number {
 }
 
 export function estoqueTotal(produto: Produto): number {
-  return variacoesAtivas(produto).reduce((sum, v) => sum + v.estoque, 0);
+  const ativas = variacoesAtivas(produto);
+  // Produtos todasCores não têm estoque controlado por cor (o admin trata como "—"),
+  // então disponibilidade depende só de existir variação ativa, não de v.estoque > 0.
+  if (produto.todasCores) return ativas.length;
+  return ativas.reduce((sum, v) => sum + v.estoque, 0);
 }
 
 export function capaUrl(produto: Produto): string | undefined {
