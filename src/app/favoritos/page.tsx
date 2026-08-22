@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, X } from "lucide-react";
 import { useProdutos } from "@/lib/hooks";
-import { precoMinimo, capaUrl } from "@/lib/produtos";
+import { precoMinimo, precoAPrazoMinimo, capaUrl } from "@/lib/produtos";
 import { brl, useStore } from "@/lib/store";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
@@ -48,6 +48,9 @@ export default function FavoritosPage() {
           <div className="px-4 pt-2 grid grid-cols-2 gap-3">
             {items.map((p) => {
               const foto = capaUrl(p);
+              const preco = precoMinimo(p);
+              const precoCheio = precoAPrazoMinimo(p);
+              const temDesconto = p.descontoPct > 0 && precoCheio > preco;
               return (
                 <div
                   key={p.id}
@@ -93,8 +96,14 @@ export default function FavoritosPage() {
                         {p.nome}
                       </div>
                     </button>
-                    <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15.5, letterSpacing: "-0.02em", color: "#00B20B" }} className="mt-1.5">
-                      {brl(precoMinimo(p))}
+                    <div className="mt-1.5">
+                      {temDesconto && (
+                        <div className="text-[10.5px] font-medium text-[#999999] line-through">{brl(precoCheio)}</div>
+                      )}
+                      <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 15.5, letterSpacing: "-0.02em", color: "#00B20B" }}>
+                        {brl(preco)}
+                      </div>
+                      {temDesconto && <div className="text-[10px] font-semibold text-ne-green">à vista no PIX</div>}
                     </div>
                   </div>
                 </div>

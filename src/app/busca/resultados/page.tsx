@@ -7,7 +7,7 @@ import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { useProdutos } from "@/lib/hooks";
-import { precoMinimo, capaUrl } from "@/lib/produtos";
+import { precoMinimo, precoAPrazoMinimo, capaUrl } from "@/lib/produtos";
 import { brl } from "@/lib/store";
 import { useToast } from "@/lib/toast";
 
@@ -101,6 +101,9 @@ function ResultadosContent() {
             <div className="grid grid-cols-2 gap-3 p-4">
               {shown.map((p) => {
                 const foto = capaUrl(p);
+                const preco = precoMinimo(p);
+                const precoCheio = precoAPrazoMinimo(p);
+                const temDesconto = p.descontoPct > 0 && precoCheio > preco;
                 return (
                   <button
                     key={p.id}
@@ -119,7 +122,11 @@ function ResultadosContent() {
                     </div>
                     <div className="p-2.5 flex flex-col gap-1">
                       <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.nome}</span>
-                      <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>{brl(precoMinimo(p))}</span>
+                      {temDesconto && (
+                        <span className="text-[10.5px] font-medium text-[#999999] line-through">{brl(precoCheio)}</span>
+                      )}
+                      <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>{brl(preco)}</span>
+                      {temDesconto && <span className="text-[10px] font-semibold text-ne-green">à vista no PIX</span>}
                     </div>
                   </button>
                 );

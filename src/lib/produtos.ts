@@ -35,16 +35,39 @@ export function variacoesAtivas(produto: Produto): ProdutoVariacao[] {
   return Object.values(produto.variacoes).filter((v) => v.ativo);
 }
 
+/** Preço a prazo (preço cheio/de tabela) de uma variação — variacao.preco, sem alteração. */
+export function precoAPrazo(variacao: ProdutoVariacao): number {
+  return variacao.preco;
+}
+
+/** Preço à vista de uma variação, aplicando o desconto do produto (descontoPct). */
+export function precoAVista(variacao: ProdutoVariacao, produto: Produto): number {
+  if (!produto.descontoPct) return variacao.preco;
+  return variacao.preco * (1 - produto.descontoPct / 100);
+}
+
+/** Menor preço à vista entre as variações ativas — usado nos cards/listagens. */
 export function precoMinimo(produto: Produto): number {
   const ativas = variacoesAtivas(produto);
   if (ativas.length === 0) return 0;
-  return Math.min(...ativas.map((v) => v.preco));
+  return Math.min(...ativas.map((v) => precoAVista(v, produto)));
 }
 
+/** Maior preço à vista entre as variações ativas. */
 export function precoMaximo(produto: Produto): number {
   const ativas = variacoesAtivas(produto);
   if (ativas.length === 0) return 0;
-  return Math.max(...ativas.map((v) => v.preco));
+  return Math.max(...ativas.map((v) => precoAVista(v, produto)));
+}
+
+/** Preço a prazo correspondente à variação de menor preço à vista — para exibir riscado ao lado de precoMinimo(). */
+export function precoAPrazoMinimo(produto: Produto): number {
+  const ativas = variacoesAtivas(produto);
+  if (ativas.length === 0) return 0;
+  const menor = ativas.reduce((acc, v) =>
+    precoAVista(v, produto) < precoAVista(acc, produto) ? v : acc
+  );
+  return menor.preco;
 }
 
 export function estoqueTotal(produto: Produto): number {

@@ -4,7 +4,7 @@ import { createElement, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Share2, Heart, Star, Minus, Plus, Truck } from "lucide-react";
 import { ChevronRight } from "lucide-react";
-import { getProduto, getProdutosPorCategoria, capaUrl, precoMinimo, estoqueTotal } from "@/lib/produtos";
+import { getProduto, getProdutosPorCategoria, capaUrl, precoMinimo, estoqueTotal, precoAVista } from "@/lib/produtos";
 import { variacaoPadrao } from "@/lib/mappers";
 import { brl, useStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
@@ -135,8 +135,8 @@ export default function ProductDetailPage() {
     return !!v && v.ativo && v.estoque > 0;
   };
 
-  const unitPrice = variacao?.preco ?? 0;
-  const oldPrice = produto && produto.descontoPct > 0 ? unitPrice / (1 - produto.descontoPct / 100) : null;
+  const unitPrice = variacao && produto ? precoAVista(variacao, produto) : 0;
+  const oldPrice = produto && produto.descontoPct > 0 && variacao ? variacao.preco : null;
   const total = unitPrice * qty;
   // Produtos todasCores não têm estoque controlado por cor (o admin trata como "—"),
   // então disponibilidade depende só da variação estar ativa, não de v.estoque > 0.
@@ -158,7 +158,7 @@ export default function ProductDetailPage() {
         variacao: chaveDe(corChave, volume),
         title: produto.nome,
         specs: `${specsCor} | Volume: ${volume}`,
-        price: variacao.preco,
+        price: unitPrice,
         oldPrice,
         shot: produto.nome.split(" ")[0],
         shotUrl: capaUrl(produto),
@@ -309,6 +309,9 @@ export default function ProductDetailPage() {
                 </>
               )}
             </div>
+            {oldPrice !== null && (
+              <div className="text-[12px] font-semibold text-ne-green">à vista no PIX</div>
+            )}
 
             <div className="flex items-center gap-1.5 text-[12.5px] font-medium text-[#999999]">
               <Truck size={15} color="#0088B7" strokeWidth={2} />

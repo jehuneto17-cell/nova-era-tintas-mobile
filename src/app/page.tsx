@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ShoppingBag, Star, LayoutGrid, Heart } from "lucide-react";
 import { useProdutos, useCategoriasAtivas, useBranding, useLoja, useWhatsapp, useBuscas } from "@/lib/hooks";
-import { precoMinimo, estoqueTotal, capaUrl } from "@/lib/produtos";
+import { precoMinimo, precoAPrazoMinimo, estoqueTotal, capaUrl } from "@/lib/produtos";
 import { toCartLine } from "@/lib/mappers";
 import { brl, useStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
@@ -393,6 +393,8 @@ export default function HomePage() {
               const inCart = cartByProduto.has(p.id);
               const fav = favorites.includes(p.id);
               const preco = precoMinimo(p);
+              const precoCheio = precoAPrazoMinimo(p);
+              const temDesconto = p.descontoPct > 0 && precoCheio > preco;
               const emEstoque = estoqueTotal(p) > 0;
               const foto = capaUrl(p);
               return (
@@ -425,7 +427,11 @@ export default function HomePage() {
                     <div className="text-[11px] font-medium leading-snug text-[#999999] line-clamp-2">{stripHtml(p.descricao)}</div>
                     <div className="mt-auto flex items-end justify-between gap-2 pt-1">
                       <div>
+                        {temDesconto && (
+                          <div className="text-[10.5px] font-medium text-[#999999] line-through">{brl(precoCheio)}</div>
+                        )}
                         <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 16, letterSpacing: "-0.02em", color: "#00B20B" }}>{brl(preco)}</div>
+                        {temDesconto && <div className="text-[10px] font-semibold text-ne-green">à vista no PIX</div>}
                         {!emEstoque && <div className="text-[10px] font-semibold text-[#E63946] mt-0.5">Sem estoque</div>}
                       </div>
                       <button

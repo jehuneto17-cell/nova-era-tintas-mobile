@@ -6,7 +6,7 @@ import { ChevronLeft, SlidersHorizontal, X, PackageSearch } from "lucide-react";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
-import { getProdutosPorCategoria, precoMinimo, estoqueTotal, capaUrl, subscribeProdutos } from "@/lib/produtos";
+import { getProdutosPorCategoria, precoMinimo, precoAPrazoMinimo, estoqueTotal, capaUrl, subscribeProdutos } from "@/lib/produtos";
 import { subscribeCategorias } from "@/lib/categorias";
 import { brl } from "@/lib/store";
 import { useToast } from "@/lib/toast";
@@ -172,6 +172,8 @@ export default function ProdutosFiltradosPage() {
             <div className="grid grid-cols-2 gap-3 p-4">
               {shown.map((p) => {
                 const preco = precoMinimo(p);
+                const precoCheio = precoAPrazoMinimo(p);
+                const temDesconto = p.descontoPct > 0 && precoCheio > preco;
                 const emEstoque = estoqueTotal(p) > 0;
                 const foto = capaUrl(p);
                 return (
@@ -196,7 +198,11 @@ export default function ProdutosFiltradosPage() {
                     </div>
                     <div className="p-2.5 flex flex-col gap-1">
                       <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, lineHeight: 1.25, color: "#000" }}>{p.nome}</span>
+                      {temDesconto && (
+                        <span className="text-[10.5px] font-medium text-[#999999] line-through">{brl(precoCheio)}</span>
+                      )}
                       <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 800, fontSize: 14, color: "#00B20B" }}>{brl(preco)}</span>
+                      {temDesconto && <span className="text-[10px] font-semibold text-ne-green">à vista no PIX</span>}
                     </div>
                   </button>
                 );
