@@ -34,6 +34,7 @@ export interface Produto {
   ativo: boolean;
   cores: ProdutoCor[];
   todasCores?: boolean;
+  paletaTodasCores?: "suvinil" | "coral";
   volumes: string[];
   variacoes: Record<string, ProdutoVariacao>;
   specs: ProdutoSpec[];
@@ -169,6 +170,12 @@ export interface BuscasConfig {
   mostrar: boolean;
 }
 
+export interface HorarioDia {
+  aberto: boolean;
+  inicio: string;
+  fim: string;
+}
+
 export interface LojaConfig {
   nome: string;
   cnpj: string;
@@ -176,6 +183,7 @@ export interface LojaConfig {
   cidade: string;
   estado: string;
   horarios: string;
+  horarios_semana?: HorarioDia[];
 }
 
 export interface Cupom {

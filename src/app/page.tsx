@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ShoppingBag, Star, LayoutGrid, Heart } from "lucide-react";
 import { useProdutos, useCategoriasAtivas, useBranding, useLoja, useWhatsapp, useBuscas } from "@/lib/hooks";
@@ -9,7 +9,7 @@ import { toCartLine } from "@/lib/mappers";
 import { brl, useStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
 import { categoryIcon } from "@/lib/icons";
-import { stripHtml } from "@/lib/utils";
+import { stripHtml, statusLoja } from "@/lib/utils";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -26,6 +26,13 @@ export default function HomePage() {
   const loja = useLoja();
   const whatsapp = useWhatsapp();
   const buscas = useBuscas();
+
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const situacaoLoja = useMemo(() => statusLoja(loja?.horarios_semana, agora), [loja, agora]);
 
   const [cat, setCat] = useState("todos");
   const [query, setQuery] = useState("");
@@ -314,7 +321,21 @@ export default function HomePage() {
           <div className="mt-4 flex items-stretch bg-white border border-[#E6E9E6] rounded-2xl overflow-hidden">
             <div className="flex-1 py-2.5 px-2 text-center">
               <div className="text-[11px] font-medium text-[#999999]">Retirada</div>
-              <div className="mt-1" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#00B20B" }}>Retire hoje</div>
+              <div
+                className="mt-1"
+                style={{
+                  fontFamily: "var(--font-archivo)",
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  color: situacaoLoja === "aberta" ? "#00B20B" : "var(--ne-red)",
+                }}
+              >
+                {situacaoLoja === "aberta"
+                  ? "Retire hoje"
+                  : situacaoLoja === "fechada_hoje"
+                  ? "Estamos fechados"
+                  : "Voltamos amanhã"}
+              </div>
             </div>
             <div className="w-px bg-[#EDEFED]" />
             <div className="flex-1 py-2.5 px-2 text-center">
