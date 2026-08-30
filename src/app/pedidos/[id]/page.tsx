@@ -7,7 +7,8 @@ import { subscribePedido } from "@/lib/pedidos";
 import { pedidoTotal, pedidoSubtotal, STATUS_META } from "@/lib/pedidoHelpers";
 import { brl } from "@/lib/store";
 import { useToast } from "@/lib/toast";
-import { useWhatsapp } from "@/lib/hooks";
+import { useWhatsapp, useProdutos } from "@/lib/hooks";
+import { capaUrl } from "@/lib/produtos";
 import type { Pedido } from "@/lib/types";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -17,6 +18,7 @@ export default function PedidoDetalhePage() {
   const params = useParams<{ id: string }>();
   const { flash } = useToast();
   const whatsapp = useWhatsapp();
+  const { produtos } = useProdutos();
 
   const [pedido, setPedido] = useState<Pedido | null | undefined>(undefined);
 
@@ -167,10 +169,18 @@ export default function PedidoDetalhePage() {
               Itens do Pedido
             </div>
             <div className="flex flex-col gap-3">
-              {pedido.itens.map((it, i) => (
+              {pedido.itens.map((it, i) => {
+                const produto = produtos.find((p) => p.id === it.produtoId);
+                const foto = produto ? capaUrl(produto) : undefined;
+                return (
                 <div key={i} className="flex gap-3">
                   <div className="w-16 h-16 flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
-                    <ImagePlaceholder label={it.nome} />
+                    {foto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={foto} alt={it.nome} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImagePlaceholder label={it.nome} />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13, lineHeight: 1.25, color: "#000" }}>{it.nome}</div>
@@ -185,7 +195,8 @@ export default function PedidoDetalhePage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="h-px my-3.5 bg-[#EDEFED]" />
             <div className="flex flex-col gap-1.5">

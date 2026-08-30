@@ -13,10 +13,11 @@ import {
   Share2,
   Mail,
   MessageCircle,
+  MapPin,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
-import { useBranding } from "@/lib/hooks";
+import { useBranding, useLoja } from "@/lib/hooks";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -31,6 +32,7 @@ const MENU = [
 
 const INSTAGRAM_URL = "https://www.instagram.com/novaeratintas";
 const FACEBOOK_URL = "https://www.facebook.com/nova.era.336717";
+const MAPS_URL = "https://www.google.com/maps/place/Nova+Era+Tintas/@-20.7462876,-46.7563641,17z/data=!3m1!4b1!4m6!3m5!1s0x94b6df1b0eac9e03:0x2c541f24ce949d26!8m2!3d-20.7462876!4d-46.7563641!16s%2Fg%2F11hz5vdqjx";
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -65,6 +67,7 @@ export default function PerfilPage() {
   const { flash } = useToast();
   const { user, cliente, loading: authLoading, logout } = useAuth();
   const branding = useBranding();
+  const loja = useLoja();
   const [showLogout, setShowLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showRedes, setShowRedes] = useState(false);
@@ -343,7 +346,26 @@ export default function PerfilPage() {
                 </a>
               )}
 
-              {!branding?.email && !branding?.whatsapp && !branding?.redes_sociais?.instagram && !branding?.redes_sociais?.facebook && (
+              {loja?.endereco && (
+                <a
+                  href={MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-[#F4F6F4] hover:bg-[#E9EDE9] transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-white flex-none flex items-center justify-center">
+                    <MapPin size={17} color="#012418" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11.5px] font-medium text-[#999999]">Localização</div>
+                    <div className="truncate" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#012418" }}>
+                      {loja.endereco}
+                    </div>
+                  </div>
+                </a>
+              )}
+
+              {!branding?.email && !branding?.whatsapp && !branding?.redes_sociais?.instagram && !branding?.redes_sociais?.facebook && !loja?.endereco && (
                 <div className="px-4 py-6 text-center text-[13px] font-medium text-[#999999]">
                   {branding ? "Nenhuma informação de contato disponível." : "Carregando..."}
                 </div>

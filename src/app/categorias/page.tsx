@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCategoriasAtivas } from "@/lib/hooks";
+import { useCategoriasAtivas, useProdutos } from "@/lib/hooks";
 import { categoryIcon } from "@/lib/icons";
 import { BackHeader } from "@/components/BackHeader";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
@@ -11,6 +11,7 @@ import { TabBar } from "@/components/TabBar";
 export default function CategoriasPage() {
   const router = useRouter();
   const { categorias, loading } = useCategoriasAtivas();
+  const { produtos } = useProdutos();
 
   return (
     <>
@@ -57,7 +58,9 @@ export default function CategoriasPage() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-semibold text-white/70">{c.qtdProdutos} itens</span>
+                    <span className="text-[12px] font-semibold text-white/70">
+                      {produtos.filter((p) => p.categoriaId === c.id).length} itens
+                    </span>
                     <span
                       className="border border-white/60 text-white rounded-full px-3.5 py-1.5 transition-colors group-hover:bg-white group-hover:text-[#012418]"
                       style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 12 }}

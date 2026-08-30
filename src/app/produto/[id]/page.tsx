@@ -28,7 +28,6 @@ export default function ProductDetailPage() {
   const { toggleFavorite, favorites, addItem } = useStore();
   const { flash } = useToast();
   const { categorias } = useCategoriasAtivas();
-  const { cores: paletaGlobal } = useCoresAtivas();
 
   const [result, setResult] = useState<{ id: string; produto: Produto | null } | null>(null);
   const [relacionados, setRelacionados] = useState<Produto[]>([]);
@@ -73,6 +72,8 @@ export default function ProductDetailPage() {
   const loading = result?.id !== params.id;
   const notFound = !loading && result?.produto === null;
   const produto = !loading ? result?.produto ?? null : null;
+
+  const { cores: paletaGlobal } = useCoresAtivas(produto?.paletaTodasCores ?? "suvinil");
 
   useEffect(() => {
     if (!produto) return;

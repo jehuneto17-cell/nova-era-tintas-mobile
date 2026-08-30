@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { subscribeCategoriasAtivas } from "./categorias";
-import { subscribeCores } from "./cores";
+import { subscribeCores, subscribeCoresCoral } from "./cores";
 import { subscribeBranding, subscribeFrete, subscribePagamento, subscribeWhatsapp, subscribeBuscas, subscribeLoja } from "./configuracoes";
 import { subscribeProdutos } from "./produtos";
 import type {
@@ -47,20 +47,24 @@ export function useCategoriasAtivas() {
   return { categorias, loading };
 }
 
-/** Paleta global de cores da loja (coleção `cores`) — usada por produtos com todasCores=true. */
-export function useCoresAtivas() {
+/**
+ * Paleta global de cores da loja — usada por produtos com todasCores=true.
+ * `paleta` escolhe a coleção: "suvinil" (`cores`, padrão) ou "coral" (`cores_coral`).
+ */
+export function useCoresAtivas(paleta: "suvinil" | "coral" = "suvinil") {
   const [cores, setCores] = useState<ProdutoCor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [paletaCarregada, setPaletaCarregada] = useState<"suvinil" | "coral" | null>(null);
 
   useEffect(() => {
-    const unsub = subscribeCores((c) => {
+    const subscribe = paleta === "coral" ? subscribeCoresCoral : subscribeCores;
+    const unsub = subscribe((c) => {
       setCores(c);
-      setLoading(false);
+      setPaletaCarregada(paleta);
     });
     return unsub;
-  }, []);
+  }, [paleta]);
 
-  return { cores, loading };
+  return { cores, loading: paletaCarregada !== paleta };
 }
 
 export function useBranding() {

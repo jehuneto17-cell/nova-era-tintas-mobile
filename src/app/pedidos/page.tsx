@@ -7,6 +7,8 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
 import { subscribePedidosDoCliente } from "@/lib/pedidos";
 import { pedidoTotal, STATUS_META } from "@/lib/pedidoHelpers";
+import { useProdutos } from "@/lib/hooks";
+import { capaUrl } from "@/lib/produtos";
 import { brl, useStore } from "@/lib/store";
 import type { Pedido, PedidoEstado } from "@/lib/types";
 import { TabBar } from "@/components/TabBar";
@@ -56,6 +58,7 @@ export default function PedidosPage() {
   const { flash } = useToast();
   const { addItem } = useStore();
   const { user, cliente, loading: authLoading } = useAuth();
+  const { produtos } = useProdutos();
   const [tab, setTab] = useState<TabId>("todos");
   const [result, setResult] = useState<{ clienteId: string; pedidos: Pedido[] } | null>(null);
 
@@ -201,11 +204,18 @@ export default function PedidosPage() {
                 const meta = STATUS_META[p.estado];
                 const cta = ctaFor(p.estado);
                 const total = pedidoTotal(p);
+                const primeiroProduto = produtos.find((prod) => prod.id === p.itens[0]?.produtoId);
+                const foto = primeiroProduto ? capaUrl(primeiroProduto) : undefined;
                 return (
                   <div key={p.id} className="p-3 bg-white rounded-xl shadow-[0_2px_10px_rgba(1,36,24,.06)]" style={{ animation: "ne-rise .25s ease-out both" }}>
                     <div className="flex gap-3">
                       <div className="w-[76px] h-[76px] flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
-                        <ImagePlaceholder label="Nova Era Tintas" />
+                        {foto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={foto} alt="Nova Era Tintas" className="w-full h-full object-cover" />
+                        ) : (
+                          <ImagePlaceholder label="Nova Era Tintas" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">

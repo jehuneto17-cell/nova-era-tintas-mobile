@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Search } from "lucide-react";
 import { useCoresAtivas } from "@/lib/hooks";
+import { getProduto } from "@/lib/produtos";
 import { corEscolhidaKey } from "@/lib/corEscolhida";
 import { familiaDeCor, ORDEM_FAMILIAS } from "@/lib/familiaCor";
 import type { ProdutoCor } from "@/lib/types";
@@ -11,7 +12,18 @@ import type { ProdutoCor } from "@/lib/types";
 export default function EscolherCorPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { cores, loading } = useCoresAtivas();
+  const [paleta, setPaleta] = useState<"suvinil" | "coral">("suvinil");
+  const { cores, loading } = useCoresAtivas(paleta);
+
+  useEffect(() => {
+    let active = true;
+    getProduto(params.id).then((p) => {
+      if (active && p) setPaleta(p.paletaTodasCores ?? "suvinil");
+    });
+    return () => {
+      active = false;
+    };
+  }, [params.id]);
   const [busca, setBusca] = useState("");
   const [familiaAtiva, setFamiliaAtiva] = useState<string | null>(null);
   const [corAtual] = useState(() => {

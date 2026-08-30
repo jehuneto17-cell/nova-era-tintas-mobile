@@ -11,11 +11,21 @@ function toCor(id: string, data: Record<string, unknown>): ProdutoCor {
   };
 }
 
-/** Assina a paleta global de cores da loja (usada por produtos com todasCores=true). */
+/** Assina a paleta global de cores da loja (usada por produtos com todasCores=true e paletaTodasCores="suvinil"). */
 export function subscribeCores(
   onChange: (cores: ProdutoCor[]) => void
 ): Unsubscribe {
   const q = query(collection(db, "cores"));
+  return onSnapshot(q, (snap) => {
+    onChange(snap.docs.map((d) => toCor(d.id, d.data())));
+  });
+}
+
+/** Assina a paleta Coral (usada por produtos com todasCores=true e paletaTodasCores="coral"). */
+export function subscribeCoresCoral(
+  onChange: (cores: ProdutoCor[]) => void
+): Unsubscribe {
+  const q = query(collection(db, "cores_coral"));
   return onSnapshot(q, (snap) => {
     onChange(snap.docs.map((d) => toCor(d.id, d.data())));
   });
