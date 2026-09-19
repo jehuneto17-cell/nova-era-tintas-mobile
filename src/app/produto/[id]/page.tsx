@@ -489,11 +489,11 @@ export default function ProductDetailPage() {
                 {produto.specs.map((s, i) => (
                   <div
                     key={s.nome}
-                    className="flex items-center justify-between px-3.5 py-3"
+                    className="flex flex-col gap-1 px-3.5 py-3"
                     style={{ borderTop: i === 0 ? "none" : "1px solid #F2F4F2" }}
                   >
-                    <span className="text-[13.5px] text-[#999999]">{s.nome}</span>
-                    <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#000" }}>{s.valor}</span>
+                    <span className="text-[12px] uppercase tracking-wide text-[#999999]">{s.nome}</span>
+                    <span className="leading-snug" style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 13.5, color: "#000" }}>{s.valor}</span>
                   </div>
                 ))}
               </div>
