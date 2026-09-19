@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Share2, Heart, Star, Minus, Plus, Truck } from "lucide-react";
 import { ChevronRight } from "lucide-react";
@@ -36,6 +36,7 @@ export default function ProductDetailPage() {
   const [volume, setVolume] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [slide, setSlide] = useState(0);
+  const carrosselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -118,6 +119,21 @@ export default function ProductDetailPage() {
     if (!cor) return null;
     return produto.variacoes[chaveDe(cor, volume)] ?? null;
   }, [produto, cor, volume]);
+
+  const fotos = useMemo(() => {
+    if (!produto) return [];
+    const base = produto.fotos.map((f) => ({ id: f.id, url: f.url }));
+    const extras = Object.entries(produto.variacoes).filter(([, v]) => v.foto).map(([k, v]) => ({ id: k, url: v.foto! }));
+    return [...base, ...extras];
+  }, [produto]);
+
+  useEffect(() => {
+    const url = variacao?.foto;
+    const i = url ? fotos.findIndex((f) => f.url === url) : -1;
+    if (i < 0) return;
+    setSlide(i);
+    carrosselRef.current?.scrollTo({ left: i * carrosselRef.current.clientWidth, behavior: "smooth" });
+  }, [variacao, fotos]);
 
   const corDisponivel = (nomeCor: string) => {
     if (!produto || !volume || produto.todasCores) return true;
@@ -223,12 +239,13 @@ export default function ProductDetailPage() {
         {/* image carousel */}
         <div className="relative">
           <div
+            ref={carrosselRef}
             onScroll={(e) => onCarouselScroll(e.currentTarget)}
             className="ne-hs flex snap-x snap-mandatory"
             style={{ height: 300 }}
           >
-            {produto.fotos.length > 0 ? (
-              produto.fotos.map((f) => (
+            {fotos.length > 0 ? (
+              fotos.map((f) => (
                 <div key={f.id} className="w-full flex-none snap-center bg-[#F1F3F1]" style={{ height: 300 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={f.url} alt={produto.nome} className="w-full h-full object-cover" />
@@ -249,9 +266,9 @@ export default function ProductDetailPage() {
             <Heart size={21} color={fav ? "#E23B3B" : "#999999"} fill={fav ? "#E23B3B" : "none"} strokeWidth={2} />
           </button>
 
-          {produto.fotos.length > 1 && (
+          {fotos.length > 1 && (
             <div className="absolute left-0 right-0 bottom-3.5 flex items-center justify-center gap-1.5">
-              {produto.fotos.map((f, i) => (
+              {fotos.map((f, i) => (
                 <div
                   key={f.id}
                   className="rounded-[3px] transition-all"
