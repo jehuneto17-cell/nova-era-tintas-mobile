@@ -116,8 +116,9 @@ export default function ProductDetailPage() {
   const variacao = useMemo(() => {
     if (!produto || !volume) return null;
     if (produto.todasCores) return produto.variacoes[chaveDe(TODAS_CORES, volume)] ?? null;
-    if (!cor) return null;
-    return produto.variacoes[chaveDe(cor, volume)] ?? null;
+    const c = cor ?? (produto.cores.length === 0 ? "__item__" : null); // produto tipo item não tem cor
+    if (!c) return null;
+    return produto.variacoes[chaveDe(c, volume)] ?? null;
   }, [produto, cor, volume]);
 
   const fotos = useMemo(() => {
@@ -131,7 +132,7 @@ export default function ProductDetailPage() {
   useEffect(() => {
     const i = Math.max(fotos.findIndex((f) => f.url === fotoUrl), 0); // sem foto na variação, volta à primeira do produto
     setSlide(i);
-    carrosselRef.current?.scrollTo({ left: i * carrosselRef.current.clientWidth, behavior: "smooth" });
+    carrosselRef.current?.scrollTo({ left: i * carrosselRef.current.clientWidth, behavior: "instant" });
   }, [fotoUrl, fotos]);
 
   const corDisponivel = (nomeCor: string) => {
