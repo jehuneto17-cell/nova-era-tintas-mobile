@@ -127,13 +127,12 @@ export default function ProductDetailPage() {
     return [...base, ...extras];
   }, [produto]);
 
+  const fotoUrl = variacao?.foto;
   useEffect(() => {
-    const url = variacao?.foto;
-    const i = url ? fotos.findIndex((f) => f.url === url) : -1;
-    if (i < 0) return;
+    const i = Math.max(fotos.findIndex((f) => f.url === fotoUrl), 0); // sem foto na variação, volta à primeira do produto
     setSlide(i);
     carrosselRef.current?.scrollTo({ left: i * carrosselRef.current.clientWidth, behavior: "smooth" });
-  }, [variacao, fotos]);
+  }, [fotoUrl, fotos]);
 
   const corDisponivel = (nomeCor: string) => {
     if (!produto || !volume || produto.todasCores) return true;
