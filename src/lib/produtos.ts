@@ -42,10 +42,14 @@ export function precoAPrazo(variacao: ProdutoVariacao): number {
   return variacao.preco;
 }
 
-/** Preço à vista de uma variação, aplicando o desconto do produto (descontoPct). */
+/** Desconto à vista (%) de uma variação: o dela, ou o do produto quando ela não tem. */
+export function descontoDe(variacao: ProdutoVariacao, produto: Produto): number {
+  return variacao.descontoPct ?? produto.descontoPct;
+}
+
+/** Preço à vista de uma variação, aplicando o desconto dela (ou o do produto). */
 export function precoAVista(variacao: ProdutoVariacao, produto: Produto): number {
-  if (!produto.descontoPct) return variacao.preco;
-  return variacao.preco * (1 - produto.descontoPct / 100);
+  return variacao.preco * (1 - descontoDe(variacao, produto) / 100);
 }
 
 /** Menor preço à vista entre as variações ativas — usado nos cards/listagens. */

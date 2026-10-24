@@ -1,4 +1,4 @@
-import { capaUrl, precoAVista } from "./produtos";
+import { capaUrl, descontoDe, precoAVista } from "./produtos";
 import type { CartLine } from "./store";
 import type { Produto, ProdutoVariacao } from "./types";
 
@@ -27,7 +27,7 @@ export function toCartLine(produto: Produto): Omit<CartLine, "qty"> | null {
     title: produto.nome,
     specs: `${specsCor} | Volume: ${variacao.volume}`,
     price: precoAVista(variacao, produto),
-    oldPrice: produto.descontoPct > 0 ? variacao.preco : null,
+    oldPrice: descontoDe(variacao, produto) > 0 ? variacao.preco : null,
     shot: produto.nome.split(" ")[0],
     shotUrl: capaUrl(produto),
   };

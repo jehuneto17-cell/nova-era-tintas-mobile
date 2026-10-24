@@ -189,7 +189,7 @@ export default function ProdutosFiltradosPage() {
               {shown.map((p) => {
                 const preco = precoMinimo(p);
                 const precoCheio = precoAPrazoMinimo(p);
-                const temDesconto = p.descontoPct > 0 && precoCheio > preco;
+                const temDesconto = precoCheio > preco;
                 const emEstoque = estoqueTotal(p) > 0;
                 const foto = capaUrl(p);
                 return (

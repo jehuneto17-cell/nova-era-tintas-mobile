@@ -19,6 +19,7 @@ Projeto Firebase: `nova-era-tintas` (mesmas credenciais do `.env` do app, se já
   descricao: string;
   limiteEstoqueBaixo: number;
   descontoPct: number;        // percentual de desconto, 0 = sem desconto
+  // cada variação pode ter descontoPct próprio (opcional); ausente = usa o do produto
   ativo: boolean;              // false = não deve aparecer na loja
   cores: { nome: string; hex: string }[];
   volumes: string[];           // ex: ["1L", "3,6L", "18L"]

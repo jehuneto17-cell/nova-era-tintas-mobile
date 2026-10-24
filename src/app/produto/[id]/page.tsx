@@ -4,7 +4,7 @@ import { createElement, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, Share2, Heart, Star, Minus, Plus, Truck } from "lucide-react";
 import { ChevronRight } from "lucide-react";
-import { getProduto, getProdutosPorCategoria, capaUrl, precoMinimo, estoqueTotal, precoAVista } from "@/lib/produtos";
+import { getProduto, getProdutosPorCategoria, capaUrl, precoMinimo, estoqueTotal, precoAVista, descontoDe } from "@/lib/produtos";
 import { variacaoPadrao } from "@/lib/mappers";
 import { brl, useStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
@@ -153,7 +153,8 @@ export default function ProductDetailPage() {
   };
 
   const unitPrice = variacao && produto ? precoAVista(variacao, produto) : 0;
-  const oldPrice = produto && produto.descontoPct > 0 && variacao ? variacao.preco : null;
+  const desc = produto && variacao ? descontoDe(variacao, produto) : 0;
+  const oldPrice = desc > 0 && variacao ? variacao.preco : null;
   const total = unitPrice * qty;
   // Produtos todasCores não têm estoque controlado por cor (o admin trata como "—"),
   // então disponibilidade depende só da variação estar ativa, não de v.estoque > 0.
@@ -337,7 +338,7 @@ export default function ProductDetailPage() {
                     className="px-2 py-[3px] rounded-[7px] bg-[#E7F7E8] text-ne-green"
                     style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 11 }}
                   >
-                    -{produto.descontoPct}%
+                    -{desc}%
                   </div>
                 </>
               )}

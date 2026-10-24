@@ -107,7 +107,7 @@ function ResultadosContent() {
                 const foto = capaUrl(p);
                 const preco = precoMinimo(p);
                 const precoCheio = precoAPrazoMinimo(p);
-                const temDesconto = p.descontoPct > 0 && precoCheio > preco;
+                const temDesconto = precoCheio > preco;
                 return (
                   <button
                     key={p.id}
