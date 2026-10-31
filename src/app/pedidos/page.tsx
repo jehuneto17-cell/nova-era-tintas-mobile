@@ -14,6 +14,7 @@ import type { Pedido, PedidoEstado } from "@/lib/types";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { otimizar } from "@/lib/cloudinary";
 
 type TabId = "todos" | "a_pagar" | "pendentes" | "confirmados" | "entregues";
 
@@ -212,7 +213,7 @@ export default function PedidosPage() {
                       <div className="w-[76px] h-[76px] flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
                         {foto ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={foto} alt="Nova Era Tintas" className="w-full h-full object-cover" />
+                          <img src={otimizar(foto, 200)} alt="Nova Era Tintas" className="w-full h-full object-cover" />
                         ) : (
                           <ImagePlaceholder label="Nova Era Tintas" />
                         )}

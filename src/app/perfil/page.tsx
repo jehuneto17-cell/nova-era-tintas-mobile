@@ -21,6 +21,7 @@ import { useBranding, useLoja } from "@/lib/hooks";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { otimizar } from "@/lib/cloudinary";
 
 const MENU = [
   { id: "perfil", icon: User, label: "Meu Perfil" },
@@ -158,7 +159,7 @@ export default function PerfilPage() {
             >
               {cliente?.fotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={cliente.fotoUrl} alt="Foto de perfil" className="w-full h-full object-cover" />
+                <img src={otimizar(cliente.fotoUrl, 200)} alt="Foto de perfil" className="w-full h-full object-cover" />
               ) : (
                 <ImagePlaceholder shape="circle" label="Foto de perfil" iconSize={32} />
               )}

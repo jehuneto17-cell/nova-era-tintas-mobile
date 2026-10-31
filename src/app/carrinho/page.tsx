@@ -7,6 +7,7 @@ import { useFrete } from "@/lib/hooks";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { otimizar } from "@/lib/cloudinary";
 
 export default function CarrinhoPage() {
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function CarrinhoPage() {
                   >
                     {line.shotUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={line.shotUrl} alt={line.title} className="w-full h-full object-cover" />
+                      <img src={otimizar(line.shotUrl, 200)} alt={line.title} className="w-full h-full object-cover" />
                     ) : (
                       <ImagePlaceholder label={line.shot} />
                     )}

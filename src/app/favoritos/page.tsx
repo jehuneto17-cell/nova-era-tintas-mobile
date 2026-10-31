@@ -9,6 +9,7 @@ import { brl, useStore } from "@/lib/store";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { otimizar } from "@/lib/cloudinary";
 
 export default function FavoritosPage() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function FavoritosPage() {
                   >
                     {foto ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                      <img src={otimizar(foto, 400)} alt={p.nome} className="w-full h-full object-cover" />
                     ) : (
                       <ImagePlaceholder label={p.nome} />
                     )}

@@ -12,6 +12,7 @@ import { capaUrl } from "@/lib/produtos";
 import type { Pedido } from "@/lib/types";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { otimizar } from "@/lib/cloudinary";
 
 export default function PedidoDetalhePage() {
   const router = useRouter();
@@ -177,7 +178,7 @@ export default function PedidoDetalhePage() {
                   <div className="w-16 h-16 flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
                     {foto ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={foto} alt={it.nome} className="w-full h-full object-cover" />
+                      <img src={otimizar(foto, 200)} alt={it.nome} className="w-full h-full object-cover" />
                     ) : (
                       <ImagePlaceholder label={it.nome} />
                     )}

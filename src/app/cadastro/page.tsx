@@ -8,6 +8,7 @@ import { SuccessConfetti } from "@/components/SuccessConfetti";
 import { useAuth } from "@/lib/auth";
 import { useBranding } from "@/lib/hooks";
 import { maskPhone } from "@/lib/utils";
+import { otimizar } from "@/lib/cloudinary";
 
 const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -129,7 +130,7 @@ export default function CadastroPage() {
               <div className="w-[100px] h-[100px] rounded-[20px] overflow-hidden bg-[#012418] mb-6" style={{ animation: "ne-rise .3s ease-out both" }}>
                 {branding?.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={branding.logo_url} alt="Logo Nova Era Tintas" className="w-full h-full object-cover" />
+                  <img src={otimizar(branding.logo_url, 200)} alt="Logo Nova Era Tintas" className="w-full h-full object-cover" />
                 ) : (
                   <ImagePlaceholder label="Logo Nova Era Tintas" />
                 )}

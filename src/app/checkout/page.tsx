@@ -10,6 +10,7 @@ import { useToast } from "@/lib/toast";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { otimizar } from "@/lib/cloudinary";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -146,7 +147,7 @@ export default function CheckoutPage() {
                 <div className="w-14 h-14 flex-none rounded-[10px] overflow-hidden bg-[#F1F3F1]">
                   {line.shotUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={line.shotUrl} alt={line.title} className="w-full h-full object-cover" />
+                    <img src={otimizar(line.shotUrl, 200)} alt={line.title} className="w-full h-full object-cover" />
                   ) : (
                     <ImagePlaceholder label={line.shot} />
                   )}

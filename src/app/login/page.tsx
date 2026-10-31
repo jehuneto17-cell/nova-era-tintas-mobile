@@ -7,6 +7,7 @@ import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { SuccessConfetti } from "@/components/SuccessConfetti";
 import { useAuth } from "@/lib/auth";
 import { useBranding } from "@/lib/hooks";
+import { otimizar } from "@/lib/cloudinary";
 
 function mapFirebaseAuthError(err: unknown): string {
   const code = (err as { code?: string })?.code ?? "";
@@ -109,7 +110,7 @@ export default function LoginPage() {
               <div className="w-[100px] h-[100px] rounded-[20px] overflow-hidden bg-[#012418] mb-6" style={{ animation: "ne-rise .3s ease-out both" }}>
                 {branding?.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={branding.logo_url} alt="Logo Nova Era Tintas" className="w-full h-full object-cover" />
+                  <img src={otimizar(branding.logo_url, 200)} alt="Logo Nova Era Tintas" className="w-full h-full object-cover" />
                 ) : (
                   <ImagePlaceholder label="Logo Nova Era Tintas" />
                 )}

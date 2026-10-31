@@ -7,6 +7,7 @@ import { BackHeader } from "@/components/BackHeader";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { Toast } from "@/components/Toast";
 import { TabBar } from "@/components/TabBar";
+import { otimizar } from "@/lib/cloudinary";
 
 export default function CategoriasPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function CategoriasPage() {
                 <div className="absolute inset-0" style={{ background: c.fundo }}>
                   {c.fotoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={c.fotoUrl} alt={c.nome} className="w-full h-full object-cover" />
+                    <img src={otimizar(c.fotoUrl, 400)} alt={c.nome} className="w-full h-full object-cover" />
                   ) : (
                     <ImagePlaceholder label={c.nome} />
                   )}

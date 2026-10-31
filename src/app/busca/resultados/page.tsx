@@ -10,6 +10,7 @@ import { useProdutos } from "@/lib/hooks";
 import { precoMinimo, precoAPrazoMinimo, capaUrl } from "@/lib/produtos";
 import { brl } from "@/lib/store";
 import { useToast } from "@/lib/toast";
+import { otimizar } from "@/lib/cloudinary";
 
 function ResultadosContent() {
   const router = useRouter();
@@ -119,7 +120,7 @@ function ResultadosContent() {
                     <div className="w-full h-[150px] bg-[#F5F5F5]">
                       {foto ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                        <img src={otimizar(foto, 400)} alt={p.nome} className="w-full h-full object-cover" />
                       ) : (
                         <ImagePlaceholder label={"Foto " + p.nome} />
                       )}

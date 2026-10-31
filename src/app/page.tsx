@@ -13,6 +13,7 @@ import { stripHtml, statusLoja } from "@/lib/utils";
 import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
+import { otimizar } from "@/lib/cloudinary";
 
 const RECENTS_SEED: string[] = [];
 
@@ -262,7 +263,7 @@ export default function HomePage() {
           <div className="absolute inset-0">
             {branding?.banner_url_mobile ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={branding.banner_url_mobile} alt="Banner" className="w-full h-full object-cover" />
+              <img src={otimizar(branding.banner_url_mobile, 800)} alt="Banner" className="w-full h-full object-cover" />
             ) : (
               <ImagePlaceholder label="foto de banner — tintas, rolos e pincéis" />
             )}
@@ -283,7 +284,7 @@ export default function HomePage() {
             >
               {branding?.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={branding.logo_url} alt="Logo da Loja" className="w-full h-full object-cover" />
+                <img src={otimizar(branding.logo_url, 200)} alt="Logo da Loja" className="w-full h-full object-cover" />
               ) : (
                 <ImagePlaceholder label="Logo da Loja" />
               )}
@@ -432,7 +433,7 @@ export default function HomePage() {
                   >
                     {foto ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                      <img src={otimizar(foto, 400)} alt={p.nome} className="w-full h-full object-cover" />
                     ) : (
                       <ImagePlaceholder label={p.nome} />
                     )}

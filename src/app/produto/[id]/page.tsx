@@ -15,6 +15,7 @@ import { TabBar } from "@/components/TabBar";
 import { Toast } from "@/components/Toast";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { corEscolhidaKey } from "@/lib/corEscolhida";
+import { otimizar } from "@/lib/cloudinary";
 
 const TODAS_CORES = "__todas__";
 
@@ -249,7 +250,7 @@ export default function ProductDetailPage() {
               fotos.map((f) => (
                 <div key={f.id} className="w-full flex-none snap-center bg-[#F1F3F1]" style={{ height: 300 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={f.url} alt={produto.nome} className="w-full h-full object-cover" />
+                  <img src={otimizar(f.url, 800)} alt={produto.nome} className="w-full h-full object-cover" />
                 </div>
               ))
             ) : (
@@ -541,7 +542,7 @@ export default function ProductDetailPage() {
                       <div className="relative w-full aspect-square rounded-[10px] overflow-hidden bg-[#F1F3F1]">
                         {foto ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={foto} alt={p.nome} className="w-full h-full object-cover" />
+                          <img src={otimizar(foto, 400)} alt={p.nome} className="w-full h-full object-cover" />
                         ) : (
                           <ImagePlaceholder label={p.nome} />
                         )}

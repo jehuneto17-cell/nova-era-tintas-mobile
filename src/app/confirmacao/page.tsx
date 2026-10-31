@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
 import { criarPedido } from "@/lib/pedidos";
 import type { PedidoItem } from "@/lib/types";
+import { otimizar } from "@/lib/cloudinary";
 
 type CheckoutData = { endereco: string; frete: number; enderecoMudou: boolean };
 
@@ -175,7 +176,7 @@ export default function ConfirmacaoPage() {
                 <div className="w-20 h-20 flex-none rounded-lg overflow-hidden bg-[#F1F3F1]">
                   {it.shotUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={it.shotUrl} alt={it.title} className="w-full h-full object-cover" />
+                    <img src={otimizar(it.shotUrl, 200)} alt={it.title} className="w-full h-full object-cover" />
                   ) : (
                     <ImagePlaceholder label={it.shot} />
                   )}
