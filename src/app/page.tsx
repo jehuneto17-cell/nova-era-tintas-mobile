@@ -433,7 +433,7 @@ export default function HomePage() {
                   >
                     {foto ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={otimizar(foto, 640)} alt={p.nome} className="w-full h-full object-contain" />
+                      <img src={otimizar(foto, 640)} alt={p.nome} className="w-full h-full object-cover" />
                     ) : (
                       <ImagePlaceholder label={p.nome} />
                     )}
