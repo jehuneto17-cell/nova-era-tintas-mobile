@@ -244,17 +244,17 @@ export default function ProductDetailPage() {
             ref={carrosselRef}
             onScroll={(e) => onCarouselScroll(e.currentTarget)}
             className="ne-hs flex snap-x snap-mandatory"
-            style={{ height: 300 }}
+            style={{ aspectRatio: "1 / 1" }}
           >
             {fotos.length > 0 ? (
               fotos.map((f) => (
-                <div key={f.id} className="w-full flex-none snap-center bg-[#F1F3F1]" style={{ height: 300 }}>
+                <div key={f.id} className="w-full flex-none snap-center bg-[#F1F3F1]" style={{ aspectRatio: "1 / 1" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={otimizar(f.url, 1200)} alt={produto.nome} className="w-full h-full object-cover" />
                 </div>
               ))
             ) : (
-              <div className="w-full flex-none snap-center bg-[#F1F3F1]" style={{ height: 300 }}>
+              <div className="w-full flex-none snap-center bg-[#F1F3F1]" style={{ aspectRatio: "1 / 1" }}>
                 <ImagePlaceholder label={produto.nome} />
               </div>
             )}
