@@ -203,7 +203,7 @@ export default function ProdutosFiltradosPage() {
                     <div className="relative w-full h-[150px] bg-[#F5F5F5]">
                       {foto ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={otimizar(foto, 640)} alt={p.nome} className="w-full h-full object-cover" />
+                        <img src={otimizar(foto, 640)} alt={p.nome} className="w-full h-full object-contain" />
                       ) : (
                         <ImagePlaceholder label={"Foto " + p.nome} />
                       )}

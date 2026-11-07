@@ -250,7 +250,7 @@ export default function ProductDetailPage() {
               fotos.map((f) => (
                 <div key={f.id} className="w-full flex-none snap-center bg-[#F1F3F1]" style={{ height: 300 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={otimizar(f.url, 1200)} alt={produto.nome} className="w-full h-full object-cover" />
+                  <img src={otimizar(f.url, 1200)} alt={produto.nome} className="w-full h-full object-contain" />
                 </div>
               ))
             ) : (
@@ -542,7 +542,7 @@ export default function ProductDetailPage() {
                       <div className="relative w-full aspect-square rounded-[10px] overflow-hidden bg-[#F1F3F1]">
                         {foto ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={otimizar(foto, 640)} alt={p.nome} className="w-full h-full object-cover" />
+                          <img src={otimizar(foto, 640)} alt={p.nome} className="w-full h-full object-contain" />
                         ) : (
                           <ImagePlaceholder label={p.nome} />
                         )}
