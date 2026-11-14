@@ -38,6 +38,7 @@ export default function ProductDetailPage() {
   const [qty, setQty] = useState(1);
   const [slide, setSlide] = useState(0);
   const carrosselRef = useRef<HTMLDivElement>(null);
+  const opcoesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -128,6 +129,20 @@ export default function ProductDetailPage() {
     const extras = Object.entries(produto.variacoes).filter(([, v]) => v.foto).map(([k, v]) => ({ id: k, url: v.foto! }));
     return [...base, ...extras];
   }, [produto]);
+
+  // Produto tipo item (sem cores) com foto em pelo menos uma variação → seletor em carrossel de fotos.
+  const comFotosNasVariacoes = useMemo(
+    () => !!produto && !produto.todasCores && produto.cores.length === 0 && produto.volumes.some((v) => produto.variacoes[chaveDe("__item__", v)]?.foto),
+    [produto]
+  );
+
+  // Traz a opção escolhida para o meio do carrossel (a padrão pode estar fora da tela).
+  useEffect(() => {
+    const box = opcoesRef.current;
+    const marcada = box?.querySelector<HTMLElement>('[aria-checked="true"]');
+    if (!box || !marcada) return;
+    box.scrollTo({ left: marcada.offsetLeft - (box.clientWidth - marcada.clientWidth) / 2, behavior: "smooth" });
+  }, [volume, comFotosNasVariacoes]);
 
   const fotoUrl = variacao?.foto;
   useEffect(() => {
@@ -423,8 +438,60 @@ export default function ProductDetailPage() {
             )
           )}
 
+          {/* size picker — produto tipo item com foto nas variações: carrossel de fotos redondas com o nome embaixo */}
+          {produto.volumes.length > 0 && comFotosNasVariacoes && (
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-baseline gap-2">
+                <span style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Opções</span>
+                {volume && <span className="text-[13px] font-medium text-[#999999]">{volume}</span>}
+              </div>
+              <div ref={opcoesRef} role="radiogroup" aria-label="Opções" className="ne-hs relative -mx-4 px-4 scroll-pl-4 flex gap-3 snap-x pb-1">
+                {produto.volumes.map((v) => {
+                  const active = v === volume;
+                  const disponivel = volumeDisponivel(v);
+                  const foto = produto.variacoes[chaveDe("__item__", v)]?.foto;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => disponivel && setVolume(v)}
+                      disabled={!disponivel}
+                      className="w-[76px] flex-none snap-start cursor-pointer bg-transparent border-0 p-0 flex flex-col items-center gap-2 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <span
+                        className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-[#F1F3F1] transition-shadow"
+                        style={{
+                          fontFamily: "var(--font-archivo)",
+                          fontWeight: 700,
+                          fontSize: 14,
+                          color: "#5C6A62",
+                          boxShadow: active ? "0 0 0 2px #FFFFFF, 0 0 0 4px #00B20B" : "0 0 0 1px rgba(0,0,0,.1)",
+                        }}
+                      >
+                        {foto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={otimizar(foto, 200)} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          v.slice(0, 2).toUpperCase()
+                        )}
+                      </span>
+                      <span
+                        className="line-clamp-2 text-center leading-tight"
+                        style={{ fontFamily: "var(--font-archivo)", fontWeight: active ? 700 : 500, fontSize: 12, color: active ? "#000" : "#5C6A62" }}
+                      >
+                        {v}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* size picker */}
-          {produto.volumes.length > 0 && (
+          {produto.volumes.length > 0 && !comFotosNasVariacoes && (
             <div className="flex flex-col gap-2.5">
               <div style={{ fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 14, color: "#000" }}>Volume</div>
               <div className="flex gap-2.5">
